@@ -30,36 +30,48 @@ const bundleDir = path.resolve(targetReleaseDir, "bundle");
 const nsisDir = path.resolve(bundleDir, "nsis");
 const msiDir = path.resolve(bundleDir, "msi");
 
+const pkg = JSON.parse(fs.readFileSync(path.resolve(appRoot, "package.json"), "utf8"));
+const targetVersion = pkg.version;
+
+function findBestArtifact(dir, predicate) {
+  if (!fs.existsSync(dir)) return null;
+  const files = fs.readdirSync(dir)
+    .filter(predicate)
+    .map((name) => {
+      const fullPath = path.resolve(dir, name);
+      return { name, fullPath, mtime: fs.statSync(fullPath).mtimeMs };
+    });
+  
+  // Prefer matching target version
+  const exactMatch = files.find((f) => f.name.includes(targetVersion));
+  if (exactMatch) return exactMatch.fullPath;
+
+  // Fallback to most recently created/modified file
+  files.sort((a, b) => b.mtime - a.mtime);
+  return files.length > 0 ? files[0].fullPath : null;
+}
+
 const candidateExeNames = [
+  "todo-overlay-app.exe",
   "Taskmaster Everywhere.exe",
   "Taskmaster-Everywhere.exe",
   "taskmaster-everywhere.exe",
   "TaskMaster.exe",
-  "todo-overlay-app.exe",
 ];
 
 let portableExe = null;
-for (const name of candidateExeNames) {
-  const p = path.resolve(targetReleaseDir, name);
-  if (fs.existsSync(p)) {
-    portableExe = p;
-    break;
-  }
+const foundExes = candidateExeNames
+  .map((name) => path.resolve(targetReleaseDir, name))
+  .filter((p) => fs.existsSync(p))
+  .map((p) => ({ fullPath: p, mtime: fs.statSync(p).mtimeMs }))
+  .sort((a, b) => b.mtime - a.mtime);
+
+if (foundExes.length > 0) {
+  portableExe = foundExes[0].fullPath;
 }
 
-let setupExe = null;
-if (fs.existsSync(nsisDir)) {
-  const files = fs.readdirSync(nsisDir);
-  const match = files.find((f) => f.endsWith("-setup.exe") || f.endsWith(".exe"));
-  if (match) setupExe = path.resolve(nsisDir, match);
-}
-
-let setupMsi = null;
-if (fs.existsSync(msiDir)) {
-  const files = fs.readdirSync(msiDir);
-  const match = files.find((f) => f.endsWith(".msi"));
-  if (match) setupMsi = path.resolve(msiDir, match);
-}
+let setupExe = findBestArtifact(nsisDir, (f) => f.endsWith("-setup.exe") || f.endsWith(".exe"));
+let setupMsi = findBestArtifact(msiDir, (f) => f.endsWith(".msi"));
 
 // 3. Prepare release files map
 const filesToDeploy = [

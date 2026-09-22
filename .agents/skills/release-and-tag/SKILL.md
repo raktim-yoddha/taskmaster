@@ -14,20 +14,24 @@ This skill guides you through executing an official release for Taskmaster Every
 
 ## Execution Steps
 
-### 1. Version Bump
-Set the target version in:
-- `package.json` -> `"version": "0.1.x"`
-- `src-tauri/tauri.conf.json` -> `"version": "0.1.x"`
-- `src/utils/updater.ts` -> `export const CURRENT_VERSION = "0.1.x";`
+### 1. Analyze Previous Version & Changes
+- Run `gh release list` or `git log $(git describe --tags --abbrev=0)..HEAD` to inspect changes since the last release tag.
+- Summarize user-facing changes, bug fixes, UI improvements, and asset updates to formulate comprehensive release notes.
 
-### 2. Compile and Package Tauri Release
+### 2. Version Bump Across All 3 Files
+Set the target version `X.Y.Z` in:
+- `package.json` -> `"version": "X.Y.Z"`
+- `src-tauri/tauri.conf.json` -> `"version": "X.Y.Z"`
+- `src/utils/updater.ts` -> `export const CURRENT_VERSION = "X.Y.Z";`
+
+### 3. Compile and Package Tauri Release
 Run:
 ```powershell
 pnpm run release
 ```
 This script runs `npm run build` and `tauri build`, creating the portable, NSIS setup, and MSI installer files in the `releases/` directory.
 
-### 3. Commit Code Changes
+### 4. Commit Code Changes
 Stage all modified source files (excluding `releases/`):
 ```powershell
 git add .
@@ -35,14 +39,14 @@ git commit -m "chore(release): vX.Y.Z - <summary of changes>"
 git push origin master
 ```
 
-### 4. Create and Push Git Tag
+### 5. Create and Push Git Tag
 Create an annotated tag and push it:
 ```powershell
 git tag -a vX.Y.Z -m "Release vX.Y.Z - Taskmaster Everywhere"
 git push origin vX.Y.Z
 ```
 
-### 5. Publish GitHub Release with Assets
+### 6. Publish GitHub Release with Assets
 Use the GitHub CLI (`gh`) to upload the 3 binaries:
 ```powershell
 gh release create vX.Y.Z `
@@ -53,9 +57,9 @@ gh release create vX.Y.Z `
   --notes "<Release highlights>"
 ```
 
-### 6. Verify Auto-Update Endpoint
+### 7. Verify Auto-Update Endpoint
 Test that the GitHub release is live:
 ```powershell
 gh release view vX.Y.Z
 ```
-When an existing user opens an older version of the app, `checkForUpdate()` queries `https://api.github.com/repos/raktim-yoddha/todo-app/releases/latest`, receives the new release with its assets, and immediately prompts the user to download the update.
+When an existing user opens an older version of the app, `checkForUpdate()` queries `https://api.github.com/repos/raktim-yoddha/todo-app/releases/latest`, receives the new release with its assets, and immediately prompts the user with the update pop-up to download the update.

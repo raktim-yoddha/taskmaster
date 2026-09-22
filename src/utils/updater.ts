@@ -1,6 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 
-export const CURRENT_VERSION = "0.1.1";
+export const CURRENT_VERSION = "0.1.2";
 export const GITHUB_REPO = "raktim-yoddha/todo-app";
 
 export interface ReleaseAsset {
