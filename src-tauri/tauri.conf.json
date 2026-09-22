@@ -29,13 +29,15 @@
         "label": "widget",
         "width": 380,
         "height": 320,
-        "minWidth": 240,
-        "minHeight": 140,
+        "minWidth": 160,
+        "minHeight": 38,
         "alwaysOnTop": true,
         "decorations": false,
         "transparent": true,
         "shadow": false,
-        "resizable": true,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false,
         "visible": false
       }
     ],

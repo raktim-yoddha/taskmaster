@@ -10,8 +10,8 @@ import {
   Trash2, 
   X, 
   GripVertical,
-  ChevronUp,
-  ChevronDown,
+  Minimize2,
+  Maximize2,
   Play,
   Pause,
   Clock,
@@ -77,15 +77,13 @@ interface SortableItemProps {
   onTextChange: (text: string) => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onDelete: (id: string) => void;
 }
 
 const SortableTodoItem: React.FC<SortableItemProps> = ({
   todo,
-  index,
-  totalTodos,
+  index: _index,
+  totalTodos: _totalTodos,
   density,
   completedStyle,
   accentColor,
@@ -97,8 +95,6 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
   onTextChange,
   onSaveEdit,
   onCancelEdit,
-  onMoveUp,
-  onMoveDown,
   onDelete,
 }) => {
   const {
@@ -124,29 +120,29 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-start gap-2 group/item transition-all rounded-xl px-1.5 ${
-        density === "compact" ? "py-1" : "py-1.5"
+      className={`flex items-start gap-1 group/item transition-all rounded-lg px-0.5 ${
+        density === "compact" ? "py-0.5" : "py-1"
       } ${
         isDragging 
           ? "bg-white/10 shadow-lg border border-white/20" 
           : "hover:bg-white/[0.04] border border-transparent hover:border-white/[0.05]"
       }`}
     >
-      {/* Hold and Drag Grip Handle */}
+      {/* Hold and Drag Grip Handle - tightly aligned with minimal spacing */}
       <div
         {...attributes}
         {...listeners}
-        className="mt-0.5 p-0.5 cursor-grab active:cursor-grabbing text-neutral-500 hover:text-white opacity-40 group-hover/item:opacity-100 transition-opacity touch-none shrink-0"
+        className="mt-1 p-0 cursor-grab active:cursor-grabbing text-neutral-500 hover:text-white opacity-25 group-hover/item:opacity-90 transition-opacity touch-none shrink-0"
         title="Hold and drag to reorder"
       >
-        <GripVertical className="w-3.5 h-3.5" />
+        <GripVertical className="w-3 h-3.5" />
       </div>
 
       {/* Custom Rounded Liquid Glass Checkbox */}
       <button
         type="button"
         onClick={() => onToggle(todo.id)}
-        className="mt-0.5 w-[18px] h-[18px] min-w-[18px] rounded-md flex items-center justify-center transition-all duration-200 border cursor-pointer shrink-0"
+        className="mt-0.5 w-[16px] h-[16px] min-w-[16px] rounded-md flex items-center justify-center transition-all duration-200 border cursor-pointer shrink-0"
         style={{
           borderColor: isCompleted ? accentColor : "rgba(255, 255, 255, 0.2)",
           backgroundColor: isCompleted ? accentColor : "rgba(0, 0, 0, 0.3)",
@@ -154,12 +150,12 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
         }}
       >
         {isCompleted && (
-          <Check className="w-3 h-3 text-white stroke-[3.5]" />
+          <Check className="w-2.5 h-2.5 text-white stroke-[3.5]" />
         )}
       </button>
 
       {/* Todo Text / Inline Edit */}
-      <div className="flex-1 min-w-0 pr-0.5">
+      <div className="flex-1 min-w-0 px-0.5">
         {isEditing ? (
           <input
             ref={editInputRef}
@@ -171,12 +167,12 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
               if (e.key === "Enter") onSaveEdit();
               if (e.key === "Escape") onCancelEdit();
             }}
-            className="w-full bg-[#181a1f] border border-[#ff5733] rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
+            className="w-full bg-[#181a1f] border border-[#ff5733] rounded-md px-1.5 py-0.5 text-xs text-white focus:outline-none"
           />
         ) : (
           <div
             onDoubleClick={() => onStartEdit(todo)}
-            className={`text-[0.88rem] font-medium leading-snug cursor-pointer transition-all break-words whitespace-normal select-text ${
+            className={`text-[0.84rem] font-medium leading-snug break-words cursor-pointer transition-all select-text ${
               isCompleted
                 ? completedStyle === "strike"
                   ? "line-through opacity-40 text-neutral-400"
@@ -192,35 +188,18 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
         )}
       </div>
 
-      {/* Quick Move Up/Down/Delete on hover */}
-      <div className="opacity-0 group-hover/item:opacity-100 flex items-center gap-0.5 transition-opacity shrink-0 mt-0.5">
-        <button
-          type="button"
-          onClick={onMoveUp}
-          disabled={index === 0}
-          className="p-1 rounded-md text-neutral-400 hover:text-white disabled:opacity-20 hover:bg-white/10 transition-colors"
-          title="Move up"
-        >
-          <ChevronUp className="w-3 h-3" />
-        </button>
-        <button
-          type="button"
-          onClick={onMoveDown}
-          disabled={index === totalTodos - 1}
-          className="p-1 rounded-md text-neutral-400 hover:text-white disabled:opacity-20 hover:bg-white/10 transition-colors"
-          title="Move down"
-        >
-          <ChevronDown className="w-3 h-3" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(todo.id)}
-          className="p-1 rounded-md text-neutral-400 hover:text-[#ff5733] hover:bg-[#ff5733]/15 transition-colors"
-          title="Delete"
-        >
-          <Trash2 className="w-3 h-3" />
-        </button>
-      </div>
+      {/* Delete button - always positioned at the far right end */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(todo.id);
+        }}
+        className="mt-0.5 p-1 rounded-md text-neutral-400 hover:text-[#ff5733] hover:bg-[#ff5733]/15 opacity-0 group-hover/item:opacity-100 transition-opacity cursor-pointer shrink-0 ml-auto"
+        title="Delete task"
+      >
+        <Trash2 className="w-3 h-3" />
+      </button>
     </div>
   );
 };
@@ -242,6 +221,47 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
   const [editingText, setEditingText] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(state.title);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const expandedSizeRef = useRef<{ width: number; height: number }>({ width: 380, height: 320 });
+
+  const handleCollapse = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    try {
+      const appWindow = getCurrentWebviewWindow();
+      const factor = await appWindow.scaleFactor().catch(() => 1);
+      const size = await appWindow.innerSize().catch(() => ({ width: window.innerWidth * factor, height: window.innerHeight * factor }));
+      const logicalWidth = Math.round(size.width / factor);
+      const logicalHeight = Math.round(size.height / factor);
+      expandedSizeRef.current = {
+        width: Math.max(logicalWidth, 260),
+        height: Math.max(logicalHeight, 160),
+      };
+      setIsCollapsed(true);
+      await appWindow.setSize(new LogicalSize(185, 42));
+    } catch {
+      expandedSizeRef.current = {
+        width: window.innerWidth || 380,
+        height: window.innerHeight || 320,
+      };
+      setIsCollapsed(true);
+    }
+  };
+
+  const handleExpand = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    try {
+      const appWindow = getCurrentWebviewWindow();
+      const target = expandedSizeRef.current || { width: 380, height: 320 };
+      await appWindow.setSize(new LogicalSize(target.width, target.height));
+    } catch {
+      // ignore
+    }
+    setIsCollapsed(false);
+  };
 
   const editInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -296,76 +316,107 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
     }
   };
 
-  // Robust Tauri Window Resizing
-  const handleStartResize = async (
-    e: React.MouseEvent,
+  // In-widget Resizing with Screen Boundary Clamping & Pointer Capture
+  const handleStartResize = (
+    e: React.MouseEvent | React.PointerEvent,
     direction: "SouthEast" | "East" | "South"
   ) => {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
 
-    try {
-      const appWindow = getCurrentWebviewWindow();
-      await appWindow.startResizeDragging(direction);
-    } catch (err) {
-      console.warn("Native startResizeDragging error, using pointer fallback:", err);
-      startManualResize(e, direction);
-    }
+    startManualResize(e, direction);
   };
 
   const startManualResize = async (
-    startEvent: React.MouseEvent,
+    startEvent: React.MouseEvent | React.PointerEvent,
     direction: "SouthEast" | "East" | "South"
   ) => {
     try {
       const appWindow = getCurrentWebviewWindow();
-      let startWidth = 380;
-      let startHeight = 320;
+      let factor = 1;
+      let startLogicalWidth = 380;
+      let startLogicalHeight = 320;
+      let startLogicalX = 0;
+      let startLogicalY = 0;
+
       try {
+        factor = await appWindow.scaleFactor().catch(() => 1);
         const size = await appWindow.innerSize();
-        startWidth = size.width;
-        startHeight = size.height;
+        startLogicalWidth = Math.round(size.width / factor);
+        startLogicalHeight = Math.round(size.height / factor);
+        const pos = await appWindow.innerPosition();
+        startLogicalX = Math.round(pos.x / factor);
+        startLogicalY = Math.round(pos.y / factor);
       } catch {
-        startWidth = window.innerWidth;
-        startHeight = window.innerHeight;
+        startLogicalWidth = window.innerWidth || 380;
+        startLogicalHeight = window.innerHeight || 320;
       }
+
+      // Constrain resizing so it cannot push the widget outside the screen boundaries
+      const screenWidth = Math.round(window.screen.availWidth || 1920);
+      const screenHeight = Math.round(window.screen.availHeight || 1080);
+      const maxWidth = Math.max(260, screenWidth - startLogicalX);
+      const maxHeight = Math.max(140, screenHeight - startLogicalY);
 
       const startX = startEvent.screenX;
       const startY = startEvent.screenY;
 
-      const onMouseMove = (moveEvent: MouseEvent) => {
+      const targetEl = startEvent.currentTarget as HTMLElement;
+      if (targetEl && "setPointerCapture" in targetEl && "pointerId" in startEvent) {
+        try {
+          targetEl.setPointerCapture((startEvent as unknown as { pointerId: number }).pointerId);
+        } catch {
+          // ignore
+        }
+      }
+
+      let isResizing = true;
+
+      const onPointerMove = (moveEvent: MouseEvent | PointerEvent) => {
+        if (!isResizing) return;
         const deltaX = moveEvent.screenX - startX;
         const deltaY = moveEvent.screenY - startY;
 
-        let newWidth = startWidth;
-        let newHeight = startHeight;
+        let newWidth = startLogicalWidth;
+        let newHeight = startLogicalHeight;
 
         if (direction === "East" || direction === "SouthEast") {
-          newWidth = Math.max(240, startWidth + deltaX);
+          newWidth = Math.max(240, Math.min(maxWidth, startLogicalWidth + deltaX));
         }
         if (direction === "South" || direction === "SouthEast") {
-          newHeight = Math.max(140, startHeight + deltaY);
+          newHeight = Math.max(140, Math.min(maxHeight, startLogicalHeight + deltaY));
         }
 
-        try {
-          appWindow.setSize(new LogicalSize(newWidth, newHeight));
-        } catch {
-          // ignore in preview
+        expandedSizeRef.current = { width: newWidth, height: newHeight };
+        appWindow.setSize(new LogicalSize(newWidth, newHeight)).catch(() => {});
+      };
+
+      const onPointerUp = (upEvent: MouseEvent | PointerEvent) => {
+        isResizing = false;
+        if (targetEl && "releasePointerCapture" in targetEl && "pointerId" in upEvent) {
+          try {
+            targetEl.releasePointerCapture((upEvent as unknown as { pointerId: number }).pointerId);
+          } catch {
+            // ignore
+          }
         }
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("mousemove", onPointerMove);
+        window.removeEventListener("mouseup", onPointerUp);
       };
 
-      const onMouseUp = () => {
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
-      };
-
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+      window.addEventListener("mousemove", onPointerMove);
+      window.addEventListener("mouseup", onPointerUp);
     } catch (err) {
-      console.error("Manual resize error:", err);
+      console.error("In-build resize error:", err);
     }
   };
+
+
 
   const handleOpenSettings = async () => {
     try {
@@ -436,19 +487,77 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
   const showFraction = theme.progressStyle !== "bar";
   const showBar = theme.progressStyle !== "fraction";
 
+  if (isCollapsed) {
+    return (
+      <div 
+        data-tauri-drag-region
+        onMouseDown={handleStartDrag}
+        onClick={handleExpand}
+        className="w-screen h-screen p-0 m-0 box-border overflow-hidden bg-transparent flex items-center justify-center select-none cursor-pointer group"
+        title="Click anywhere to expand Taskmaster"
+      >
+        <div
+          data-tauri-drag-region
+          className="w-full h-full flex items-center justify-between px-2.5 py-1 rounded-full border border-white/20 hover:border-[#ff5733]/80 transition-all duration-200"
+          style={{
+            backgroundColor: bgStyle,
+            backdropFilter: `blur(${theme.blur || 32}px)`,
+            WebkitBackdropFilter: `blur(${theme.blur || 32}px)`,
+            boxShadow: `0 4px 20px rgba(0,0,0,0.6), 0 0 12px ${accentColor}40`,
+          }}
+        >
+          {/* Logo & Counter Badge */}
+          <div data-tauri-drag-region className="flex items-center gap-1.5 min-w-0">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-4 h-4 object-contain shrink-0 select-none pointer-events-none"
+            />
+            <span className="font-bold text-[11px] font-mono tracking-tight text-white/95 truncate pointer-events-none">
+              {completedCount}/{totalCount}
+            </span>
+          </div>
+
+          {/* Mini progress bar */}
+          <div className="flex-1 mx-2 h-1 bg-white/15 rounded-full overflow-hidden pointer-events-none">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${progressPct}%`,
+                backgroundColor: accentColor,
+              }}
+            />
+          </div>
+
+          {/* Expand icon */}
+          <button
+            type="button"
+            onClick={handleExpand}
+            className="p-1 rounded-full hover:bg-white/20 text-neutral-400 group-hover:text-white transition-colors cursor-pointer shrink-0"
+            title="Expand widget"
+          >
+            <Maximize2 className="w-3 h-3 text-white/80" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-screen h-screen p-0 m-0 box-border overflow-hidden bg-transparent flex flex-col select-none relative">
       {/* Edge resize strips (functional but completely transparent - zero hover color) */}
       <div
         onMouseDown={(e) => handleStartResize(e, "East")}
+        onPointerDown={(e) => handleStartResize(e, "East")}
         data-no-drag="true"
-        className="absolute top-0 right-0 w-2 h-full cursor-ew-resize z-50 bg-transparent"
+        className="absolute top-0 right-0 w-2.5 h-full cursor-ew-resize z-50 bg-transparent select-none touch-none"
         title="Resize width"
       />
       <div
         onMouseDown={(e) => handleStartResize(e, "South")}
+        onPointerDown={(e) => handleStartResize(e, "South")}
         data-no-drag="true"
-        className="absolute bottom-0 left-0 w-full h-2 cursor-ns-resize z-50 bg-transparent"
+        className="absolute bottom-0 left-0 w-full h-2.5 cursor-ns-resize z-50 bg-transparent select-none touch-none"
         title="Resize height"
       />
 
@@ -460,7 +569,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
           backdropFilter: `blur(${theme.blur || 32}px)`,
           WebkitBackdropFilter: `blur(${theme.blur || 32}px)`,
           borderRadius: `${theme.radius || 22}px`,
-          padding: `${theme.padding ? Math.min(theme.padding, 14) : 12}px`,
+          padding: `${theme.padding ? Math.min(theme.padding, 10) : 8}px`,
           fontFamily,
           color: theme.textColor || "#ffffff",
         }}
@@ -469,48 +578,56 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
         <div 
           data-tauri-drag-region
           onMouseDown={handleStartDrag}
-          className="flex items-center justify-between pb-2 mb-1.5 border-b border-white/[0.06] opacity-70 hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing shrink-0"
+          className="flex items-center justify-between pb-1 mb-1 border-b border-white/[0.06] opacity-75 hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing shrink-0"
         >
           <div 
             data-tauri-drag-region
             onMouseDown={handleStartDrag}
-            className="flex items-center gap-1.5 text-xs text-white/90 select-none cursor-grab active:cursor-grabbing"
+            className="flex items-center gap-1 text-xs text-white/90 select-none cursor-grab active:cursor-grabbing"
             title="Drag to reposition widget"
           >
             <img 
               src="/logo.png" 
               alt="Taskmaster Widget Logo" 
-              className="w-4 h-4 object-contain rounded-sm select-none cursor-grab active:cursor-grabbing" 
+              className="w-3.5 h-3.5 object-contain select-none cursor-grab active:cursor-grabbing" 
             />
-            <span className="font-semibold text-[11px] tracking-tight text-white/90 cursor-grab active:cursor-grabbing">
-              Taskmaster Widget
+            <span className="font-semibold text-[10.5px] tracking-tight text-white/80 cursor-grab active:cursor-grabbing">
+              Taskmaster
             </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={() => setIsAdding(!isAdding)}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded-md hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
               title="Add task"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3 h-3" />
+            </button>
+            <button
+              type="button"
+              onClick={handleCollapse}
+              className="p-1 rounded-md hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              title="Collapse to mini capsule"
+            >
+              <Minimize2 className="w-3 h-3" />
             </button>
             <button
               type="button"
               onClick={handleOpenSettings}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-[#ff5733] transition-colors cursor-pointer"
+              className="p-1 rounded-md hover:bg-white/10 text-neutral-400 hover:text-[#ff5733] transition-colors cursor-pointer"
               title="Open App & Customizer"
             >
-              <Settings className="w-3.5 h-3.5" />
+              <Settings className="w-3 h-3" />
             </button>
             <button
               type="button"
               onClick={handleClose}
-              className="p-1.5 rounded-lg hover:bg-[#ff5733]/20 text-neutral-400 hover:text-[#ff5733] transition-colors cursor-pointer"
+              className="p-1 rounded-md hover:bg-[#ff5733]/20 text-neutral-400 hover:text-[#ff5733] transition-colors cursor-pointer"
               title="Close Widget"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -520,7 +637,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
           <div 
             data-tauri-drag-region
             onMouseDown={handleStartDrag}
-            className="flex items-center justify-between mt-1 mb-1.5 gap-2 cursor-grab shrink-0"
+            className="flex items-center justify-between mt-0.5 mb-1 gap-1.5 cursor-grab shrink-0"
           >
             {showTitle && (
               <div className="flex-1 min-w-0">
@@ -535,12 +652,12 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
                       if (e.key === "Enter") handleSaveTitle();
                       if (e.key === "Escape") setIsEditingTitle(false);
                     }}
-                    className="w-full bg-[#14161a] border border-[#ff5733] rounded-lg px-2 py-0.5 text-xs font-bold tracking-wider uppercase text-white focus:outline-none"
+                    className="w-full bg-[#14161a] border border-[#ff5733] rounded-md px-1.5 py-0.5 text-[11px] font-bold tracking-wider uppercase text-white focus:outline-none"
                   />
                 ) : (
                   <h1
                     onDoubleClick={() => setIsEditingTitle(true)}
-                    className="text-[0.95rem] font-extrabold tracking-[0.06em] uppercase text-white truncate cursor-pointer hover:opacity-80 transition-opacity"
+                    className="text-[0.8rem] font-bold tracking-[0.05em] uppercase text-white/90 truncate cursor-pointer hover:opacity-80 transition-opacity"
                     title="Double-click to rename title"
                   >
                     {state.title || "TONIGHT'S GOAL"}
@@ -550,7 +667,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
             )}
 
             {showFraction && (
-              <div className="font-extrabold text-[1.05rem] tracking-tight text-white tabular-nums shrink-0 bg-white/[0.04] px-2.5 py-0.5 rounded-full border border-white/[0.06]">
+              <div className="font-bold text-[0.72rem] font-mono tracking-tight text-white tabular-nums shrink-0 bg-white/[0.06] px-1.5 py-0.5 rounded-md border border-white/[0.08]">
                 {completedCount}/{totalCount}
               </div>
             )}
@@ -559,24 +676,24 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
 
         {/* Optional mini timer strip */}
         {timer && (
-          <div className="flex items-center justify-between bg-[#15171b]/80 border border-white/[0.06] rounded-xl px-3 py-1.5 my-1.5 shrink-0 text-xs select-none">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center justify-between bg-[#15171b]/80 border border-white/[0.06] rounded-lg px-2.5 py-1 my-1 shrink-0 text-xs select-none">
+            <div className="flex items-center gap-1.5 min-w-0">
               <span className="flex items-center">
                 {timer.timerState.mode === "stopwatch" ? (
-                  <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                  <Clock className="w-3 h-3 text-neutral-400" />
                 ) : timer.timerState.mode === "pomodoro" ? (
-                  <Flame className="w-3.5 h-3.5 text-[#ff5733]" />
+                  <Flame className="w-3 h-3 text-[#ff5733]" />
                 ) : (
-                  <Hourglass className="w-3.5 h-3.5 text-neutral-400" />
+                  <Hourglass className="w-3 h-3 text-neutral-400" />
                 )}
               </span>
-              <span className="font-mono font-bold text-white text-[11px]">
+              <span className="font-mono font-bold text-white text-[10.5px]">
                 {timer.timerState.mode === "stopwatch"
                   ? `${Math.floor(timer.timerState.elapsedTime / 60)}:${(timer.timerState.elapsedTime % 60).toString().padStart(2, "0")}`
                   : `${Math.floor(timer.timerState.timeRemaining / 60)}:${(timer.timerState.timeRemaining % 60).toString().padStart(2, "0")}`}
               </span>
               {timer.timerState.mode === "pomodoro" && (
-                <span className="text-[10px] text-[#ff5733] font-semibold uppercase tracking-wider">
+                <span className="text-[9.5px] text-[#ff5733] font-semibold uppercase tracking-wider">
                   {timer.timerState.pomodoroPhase === "focus" ? "Focus" : "Break"}
                 </span>
               )}
@@ -585,23 +702,23 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
             <button
               type="button"
               onClick={timer.togglePlay}
-              className="p-1.5 rounded-lg text-xs transition-colors cursor-pointer text-[#ff5733] hover:text-[#ff6847] hover:bg-[#ff5733]/10"
+              className="p-1 rounded-md text-xs transition-colors cursor-pointer text-[#ff5733] hover:text-[#ff6847] hover:bg-[#ff5733]/10"
               title={timer.timerState.isRunning ? "Pause timer" : "Start timer"}
             >
-              {timer.timerState.isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+              {timer.timerState.isRunning ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
             </button>
           </div>
         )}
 
         {/* Thin divider & progress bar line */}
         {showBar && (
-          <div className="w-full h-[3px] bg-white/10 rounded-full overflow-hidden my-2 relative shrink-0">
+          <div className="w-full h-[2px] bg-white/10 rounded-full overflow-hidden my-1 relative shrink-0">
             <div
               className="h-full rounded-full transition-all duration-400 ease-out"
               style={{
                 width: `${progressPct}%`,
                 background: "linear-gradient(90deg, #ff5733, #ff7a5c)",
-                boxShadow: `0 0 8px ${accentColor}80`,
+                boxShadow: `0 0 6px ${accentColor}80`,
               }}
             />
           </div>
@@ -663,8 +780,6 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
                     onTextChange={setEditingText}
                     onSaveEdit={handleSaveEdit}
                     onCancelEdit={() => setEditingId(null)}
-                    onMoveUp={() => onReorderTodos(index, index - 1)}
-                    onMoveDown={() => onReorderTodos(index, index + 1)}
                     onDelete={onDeleteTodo}
                   />
                 ))}
@@ -672,10 +787,11 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
             </DndContext>
           )}
         </div>
-
+        
         {/* Visible Bottom-Right Corner Resize Grip Handle */}
         <div
           onMouseDown={(e) => handleStartResize(e, "SouthEast")}
+          onPointerDown={(e) => handleStartResize(e, "SouthEast")}
           data-no-drag="true"
           className="absolute bottom-1 right-1 p-1.5 cursor-nwse-resize text-white/30 hover:text-white/90 active:text-[#ff5733] transition-colors z-50 select-none touch-none"
           title="Drag to resize widget window"
@@ -686,6 +802,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
             <circle cx="4.5" cy="8.5" r="1.2" />
           </svg>
         </div>
+
       </div>
     </div>
   );

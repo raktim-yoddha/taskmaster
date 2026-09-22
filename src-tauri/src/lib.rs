@@ -13,6 +13,121 @@ use uuid::Uuid;
 use models::{OverlayState, OverlayTheme, TodoItem};
 use store::{load_state, save_state};
 
+#[cfg(target_os = "windows")]
+mod windows_boundary {
+    use std::sync::atomic::{AtomicIsize, Ordering};
+    use windows::Win32::{
+        Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM},
+        Graphics::Gdi::{
+            GetMonitorInfoW, MonitorFromPoint, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+        },
+        UI::WindowsAndMessaging::{
+            CallWindowProcW, DefWindowProcW, GetCursorPos, SetWindowLongPtrW, GWLP_WNDPROC,
+            WNDPROC, WM_MOVING, WM_SIZING,
+        },
+    };
+
+    static PREV_WNDPROC: AtomicIsize = AtomicIsize::new(0);
+
+    pub unsafe extern "system" fn widget_wnd_proc(
+        hwnd: HWND,
+        msg: u32,
+        wparam: WPARAM,
+        lparam: LPARAM,
+    ) -> LRESULT {
+        if msg == WM_MOVING || msg == WM_SIZING {
+            let rect_ptr = lparam.0 as *mut RECT;
+            if !rect_ptr.is_null() {
+                let rect = &mut *rect_ptr;
+
+                let mut cursor_pt = POINT { x: 0, y: 0 };
+                let _ = GetCursorPos(&mut cursor_pt);
+
+                let h_monitor = MonitorFromPoint(cursor_pt, MONITOR_DEFAULTTONEAREST);
+                let mut mi = MONITORINFO {
+                    cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+                    ..std::mem::zeroed()
+                };
+
+                if GetMonitorInfoW(h_monitor, &mut mi).as_bool() {
+                    let work = mi.rcWork;
+                    let width = rect.right - rect.left;
+                    let height = rect.bottom - rect.top;
+                    let work_width = work.right - work.left;
+                    let work_height = work.bottom - work.top;
+
+                    if msg == WM_MOVING {
+                        // Strict screen clamping: widget can NEVER be dragged outside screen/work area
+                        if width <= work_width {
+                            if rect.left < work.left {
+                                rect.left = work.left;
+                                rect.right = work.left + width;
+                            } else if rect.right > work.right {
+                                rect.right = work.right;
+                                rect.left = work.right - width;
+                            }
+                        } else {
+                            rect.left = work.left;
+                            rect.right = work.right;
+                        }
+
+                        if height <= work_height {
+                            if rect.top < work.top {
+                                rect.top = work.top;
+                                rect.bottom = work.top + height;
+                            } else if rect.bottom > work.bottom {
+                                rect.bottom = work.bottom;
+                                rect.top = work.bottom - height;
+                            }
+                        } else {
+                            rect.top = work.top;
+                            rect.bottom = work.bottom;
+                        }
+                    } else if msg == WM_SIZING {
+                        // Strict screen clamping when resizing
+                        if rect.left < work.left {
+                            rect.left = work.left;
+                        }
+                        if rect.right > work.right {
+                            rect.right = work.right;
+                        }
+                        if rect.top < work.top {
+                            rect.top = work.top;
+                        }
+                        if rect.bottom > work.bottom {
+                            rect.bottom = work.bottom;
+                        }
+                    }
+                }
+            }
+            return LRESULT(1);
+        }
+
+        let prev = PREV_WNDPROC.load(Ordering::Relaxed);
+        if prev != 0 {
+            let prev_proc: WNDPROC = std::mem::transmute(prev);
+            CallWindowProcW(prev_proc, hwnd, msg, wparam, lparam)
+        } else {
+            DefWindowProcW(hwnd, msg, wparam, lparam)
+        }
+    }
+
+    pub fn attach_boundary_subclass(hwnd: HWND) {
+        unsafe {
+            if PREV_WNDPROC.load(Ordering::Relaxed) == 0 {
+                let prev = SetWindowLongPtrW(
+                    hwnd,
+                    GWLP_WNDPROC,
+                    widget_wnd_proc as *const () as usize as isize,
+                );
+                if prev != 0 {
+                    PREV_WNDPROC.store(prev, Ordering::Relaxed);
+                }
+            }
+        }
+    }
+}
+
 pub struct AppContext {
     pub state: Arc<RwLock<OverlayState>>,
     pub app: Arc<RwLock<Option<AppHandle>>>,
@@ -201,6 +316,30 @@ fn show_main_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+fn clamp_widget_to_screen(window: &tauri::Window) {
+    if let Ok(Some(monitor)) = window.current_monitor() {
+        let mon_pos = monitor.position();
+        let mon_size = monitor.size();
+        let win_size = window.outer_size().unwrap_or_default();
+        if let Ok(pos) = window.outer_position() {
+            let min_x = mon_pos.x;
+            let max_x = (mon_pos.x + mon_size.width as i32 - win_size.width as i32).max(min_x);
+            let min_y = mon_pos.y;
+            let max_y = (mon_pos.y + mon_size.height as i32 - win_size.height as i32).max(min_y);
+
+            let clamped_x = pos.x.clamp(min_x, max_x);
+            let clamped_y = pos.y.clamp(min_y, max_y);
+
+            if pos.x != clamped_x || pos.y != clamped_y {
+                let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+                    x: clamped_x,
+                    y: clamped_y,
+                }));
+            }
+        }
+    }
+}
+
 #[tauri::command]
 fn toggle_widget_window(app: AppHandle) -> Result<bool, String> {
     if let Some(window) = app.get_webview_window("widget") {
@@ -209,6 +348,11 @@ fn toggle_widget_window(app: AppHandle) -> Result<bool, String> {
             window.hide().map_err(|e| e.to_string())?;
             Ok(false)
         } else {
+            #[cfg(target_os = "windows")]
+            if let Ok(hwnd) = window.hwnd() {
+                windows_boundary::attach_boundary_subclass(hwnd);
+            }
+            clamp_widget_to_screen(&window.as_ref().window());
             window.show().map_err(|e| e.to_string())?;
             window.unminimize().map_err(|e| e.to_string())?;
             window.set_focus().map_err(|e| e.to_string())?;
@@ -335,9 +479,23 @@ pub fn run() {
 
             if let Some(icon) = app.default_window_icon() {
                 builder = builder.icon(icon.clone());
+                if let Some(main_win) = app.get_webview_window("main") {
+                    let _ = main_win.set_icon(icon.clone());
+                }
+                if let Some(widget_win) = app.get_webview_window("widget") {
+                    let _ = widget_win.set_icon(icon.clone());
+                }
             }
 
             let _tray = builder.build(app)?;
+
+            if let Some(widget_win) = app.get_webview_window("widget") {
+                #[cfg(target_os = "windows")]
+                if let Ok(hwnd) = widget_win.hwnd() {
+                    windows_boundary::attach_boundary_subclass(hwnd);
+                }
+                clamp_widget_to_screen(&widget_win.as_ref().window());
+            }
 
             Ok(())
         })
@@ -346,6 +504,14 @@ pub fn run() {
                 // Keep application running in background when window is closed
                 api.prevent_close();
                 let _ = window.hide();
+            }
+            if window.label() == "widget" {
+                match event {
+                    WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
+                        clamp_widget_to_screen(window);
+                    }
+                    _ => {}
+                }
             }
         })
         .run(tauri::generate_context!())

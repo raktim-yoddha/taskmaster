@@ -9,8 +9,6 @@ import {
   Check, 
   Plus, 
   Trash2, 
-  ArrowUp, 
-  ArrowDown, 
   Play, 
   RotateCcw, 
   GripVertical,
@@ -70,22 +68,18 @@ interface SortableGoalRowProps {
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
   onFocusTask: (id: string) => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
 }
 
 const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
   todo,
-  index,
-  total,
+  index: _index,
+  total: _total,
   accentColor,
   isFocused,
   onToggle,
   onEdit,
   onDelete,
   onFocusTask,
-  onMoveUp,
-  onMoveDown,
 }) => {
   const {
     attributes,
@@ -141,11 +135,11 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
         )}
       </button>
 
-      {/* Drag Handle */}
+      {/* Drag Handle - compact */}
       <div
         {...attributes}
         {...listeners}
-        className="p-1 cursor-grab active:cursor-grabbing text-neutral-500 hover:text-neutral-300 transition-colors touch-none select-none rounded hover:bg-white/[0.05]"
+        className="-mr-1 p-0.5 cursor-grab active:cursor-grabbing text-neutral-500 hover:text-neutral-300 transition-colors touch-none select-none rounded hover:bg-white/[0.05]"
         title="Drag to reorder"
       >
         <GripVertical className="w-3.5 h-3.5" />
@@ -181,28 +175,6 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
           <Target className="w-3.5 h-3.5" />
         </button>
 
-        {/* Up arrow */}
-        <button
-          type="button"
-          disabled={index === 0}
-          onClick={onMoveUp}
-          className="p-1.5 text-neutral-400 hover:text-white disabled:opacity-20 hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-          title="Move up"
-        >
-          <ArrowUp className="w-3 h-3" />
-        </button>
-
-        {/* Down arrow */}
-        <button
-          type="button"
-          disabled={index === total - 1}
-          onClick={onMoveDown}
-          className="p-1.5 text-neutral-400 hover:text-white disabled:opacity-20 hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-          title="Move down"
-        >
-          <ArrowDown className="w-3 h-3" />
-        </button>
-
         {/* Delete */}
         <button
           type="button"
@@ -210,7 +182,7 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
           className="p-1.5 text-neutral-400 hover:text-[#ff5733] hover:bg-[#ff5733]/15 rounded-lg transition-colors cursor-pointer"
           title="Delete task"
         >
-          <Trash2 className="w-3 h-3" />
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -472,7 +444,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
             <img
               src="/logo.png"
               alt="Taskmaster Logo"
-              className="w-6 h-6 sm:w-7 sm:h-7 object-contain rounded select-none"
+              className="w-6 h-6 sm:w-7 sm:h-7 object-contain select-none transition-transform hover:scale-105 duration-200"
             />
             <span className="text-sm font-bold tracking-tight text-white select-none whitespace-nowrap">
               Taskmaster
@@ -868,8 +840,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                               onEdit={onEditTodo}
                               onDelete={onDeleteTodo}
                               onFocusTask={(id) => timer.setActiveTodoId(id)}
-                              onMoveUp={() => onReorderTodos(index, index - 1)}
-                              onMoveDown={() => onReorderTodos(index, index + 1)}
                             />
                           ))}
                         </SortableContext>
