@@ -1,7 +1,19 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
 
-export const CURRENT_VERSION = "0.1.2";
+export const CURRENT_VERSION = "0.1.3";
 export const GITHUB_REPO = "raktim-yoddha/todo-app";
+
+export interface AppInstallInfo {
+  is_portable: boolean;
+  exe_path: string;
+}
+
+export interface DownloadProgress {
+  percentage: number;
+  downloaded_bytes: number;
+  total_bytes: number;
+}
 
 export interface ReleaseAsset {
   name: string;
@@ -106,9 +118,26 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
   }
 }
 
-/**
- * Opens a URL in the user's default browser safely
- */
+export async function getAppInstallInfo(): Promise<AppInstallInfo> {
+  try {
+    return await invoke<AppInstallInfo>("get_app_install_info");
+  } catch {
+    return { is_portable: true, exe_path: "" };
+  }
+}
+
+export async function applyInPlaceUpdate(
+  downloadUrl: string,
+  totalBytes: number,
+  isPortable: boolean
+): Promise<void> {
+  await invoke("download_and_apply_update", {
+    downloadUrl,
+    totalBytes,
+    isPortable,
+  });
+}
+
 export async function openExternalUrl(url: string): Promise<void> {
   try {
     await openUrl(url);

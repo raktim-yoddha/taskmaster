@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { TimerState, PomodoroPhase, TodoItem, PomodoroSettings } from "../types";
+import { ThemedSelect } from "./ThemedSelect";
 import { 
   Play, 
   Pause, 
@@ -322,20 +323,19 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           </div>
         ) : (
           todos.length > 0 && (
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value) onSetActiveTodoId(e.target.value);
-              }}
-              className="bg-[#181a1f] border border-white/10 rounded-xl px-2.5 py-1 text-[11px] text-neutral-200 focus:outline-none focus:border-[#ff5733] cursor-pointer"
-            >
-              <option value="" disabled>Link task...</option>
-              {todos.map((t) => (
-                <option key={t.id} value={t.id} disabled={t.completed}>
-                  {t.completed ? "[Done] " : ""}{t.text}
-                </option>
-              ))}
-            </select>
+            <div className="w-44 shrink-0">
+              <ThemedSelect
+                value=""
+                onChange={(val) => {
+                  if (val) onSetActiveTodoId(val);
+                }}
+                options={todos
+                  .filter((t) => !t.completed)
+                  .map((t) => ({ value: t.id, label: t.text }))}
+                placeholder="Link task..."
+                accentColor={accentColor}
+              />
+            </div>
           )
         )}
       </div>

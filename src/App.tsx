@@ -32,6 +32,7 @@ const defaultState: OverlayState = {
     progressStyle: "both",
     completedStyle: "strike",
     animation: "subtle",
+    completionOrder: "maintain",
   },
 };
 
@@ -129,10 +130,36 @@ export default function App() {
   }, []);
 
   const handleToggleTodo = useCallback(async (id: string) => {
-    setState((prev) => ({
-      ...prev,
-      todos: prev.todos.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
-    }));
+    setState((prev) => {
+      const todoIndex = prev.todos.findIndex((t) => t.id === id);
+      if (todoIndex === -1) return prev;
+      const target = prev.todos[todoIndex];
+      const newCompleted = !target.completed;
+      const updatedItem = { ...target, completed: newCompleted };
+
+      if (prev.theme.completionOrder === "queue") {
+        const remaining = prev.todos.filter((t) => t.id !== id);
+        if (newCompleted) {
+          // Checked: moves to the very back in a queue
+          return { ...prev, todos: [...remaining, updatedItem] };
+        } else {
+          // Unchecked: moves to the back side of the unchecked to-dos
+          const firstCompletedIdx = remaining.findIndex((t) => t.completed);
+          if (firstCompletedIdx === -1) {
+            return { ...prev, todos: [...remaining, updatedItem] };
+          } else {
+            const nextTodos = [...remaining];
+            nextTodos.splice(firstCompletedIdx, 0, updatedItem);
+            return { ...prev, todos: nextTodos };
+          }
+        }
+      } else {
+        return {
+          ...prev,
+          todos: prev.todos.map((t) => (t.id === id ? updatedItem : t)),
+        };
+      }
+    });
     try {
       const updated = await invoke<OverlayState>("toggle_todo", { id });
       if (updated) setState(updated);
@@ -169,9 +196,20 @@ export default function App() {
 
   const handleReorderTodos = useCallback(async (fromIndex: number, toIndex: number) => {
     setState((prev) => {
+      const isQueue = prev.theme.completionOrder === "queue";
+      if (isQueue && prev.todos[fromIndex]?.completed) {
+        return prev;
+      }
+      let targetIndex = toIndex;
+      if (isQueue) {
+        const firstCompletedIdx = prev.todos.findIndex((t) => t.completed);
+        if (firstCompletedIdx !== -1 && targetIndex >= firstCompletedIdx) {
+          targetIndex = Math.max(0, firstCompletedIdx - 1);
+        }
+      }
       const newTodos = [...prev.todos];
       const [moved] = newTodos.splice(fromIndex, 1);
-      newTodos.splice(toIndex, 0, moved);
+      newTodos.splice(targetIndex, 0, moved);
       return { ...prev, todos: newTodos };
     });
     try {
@@ -196,7 +234,16 @@ export default function App() {
   }, []);
 
   const handleUpdateTheme = useCallback(async (newTheme: OverlayTheme) => {
-    setState((prev) => ({ ...prev, theme: newTheme }));
+    setState((prev) => {
+      const switchingToQueue = newTheme.completionOrder === "queue" && prev.theme.completionOrder !== "queue";
+      let newTodos = prev.todos;
+      if (switchingToQueue) {
+        const unchecked = prev.todos.filter((t) => !t.completed);
+        const checked = prev.todos.filter((t) => t.completed);
+        newTodos = [...unchecked, ...checked];
+      }
+      return { ...prev, theme: newTheme, todos: newTodos };
+    });
     try {
       const updated = await invoke<OverlayState>("update_theme", {
         theme: newTheme,

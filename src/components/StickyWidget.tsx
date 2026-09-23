@@ -55,11 +55,19 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-const fontFamilies: Record<string, string> = {
-  inter: "'Inter', sans-serif",
-  jakarta: "'Plus Jakarta Sans', sans-serif",
-  space: "'JetBrains Mono', monospace",
-  serif: "Georgia, serif",
+export const fontFamilies: Record<string, string> = {
+  inter: "var(--font-inter), 'Inter', -apple-system, sans-serif",
+  jakarta: "var(--font-jakarta), 'Plus Jakarta Sans', sans-serif",
+  outfit: "var(--font-outfit), 'Outfit', sans-serif",
+  dmsans: "var(--font-dmsans), 'DM Sans', sans-serif",
+  poppins: "var(--font-poppins), 'Poppins', sans-serif",
+  spacegrotesk: "var(--font-spacegrotesk), 'Space Grotesk', sans-serif",
+  montserrat: "var(--font-montserrat), 'Montserrat', sans-serif",
+  quicksand: "var(--font-quicksand), 'Quicksand', sans-serif",
+  space: "var(--font-mono), 'JetBrains Mono', monospace",
+  firacode: "var(--font-firacode), 'Fira Code', monospace",
+  playfair: "var(--font-playfair), 'Playfair Display', Georgia, serif",
+  serif: "var(--font-serif), Georgia, serif",
 };
 
 interface SortableItemProps {
@@ -69,6 +77,7 @@ interface SortableItemProps {
   density: string;
   completedStyle: string;
   accentColor: string;
+  isQueueMode: boolean;
   editingId: string | null;
   editingText: string;
   editInputRef: React.RefObject<HTMLInputElement | null>;
@@ -87,6 +96,7 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
   density,
   completedStyle,
   accentColor,
+  isQueueMode,
   editingId,
   editingText,
   editInputRef,
@@ -97,6 +107,7 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
   onCancelEdit,
   onDelete,
 }) => {
+  const isReorderDisabled = isQueueMode && todo.completed;
   const {
     attributes,
     listeners,
@@ -104,7 +115,7 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: todo.id });
+  } = useSortable({ id: todo.id, disabled: isReorderDisabled });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -128,15 +139,19 @@ const SortableTodoItem: React.FC<SortableItemProps> = ({
           : "hover:bg-white/[0.04] border border-transparent hover:border-white/[0.05]"
       }`}
     >
-      {/* Hold and Drag Grip Handle - tightly aligned with minimal spacing */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="mt-1 p-0 cursor-grab active:cursor-grabbing text-neutral-500 hover:text-white opacity-25 group-hover/item:opacity-90 transition-opacity touch-none shrink-0"
-        title="Hold and drag to reorder"
-      >
-        <GripVertical className="w-3 h-3.5" />
-      </div>
+      {/* Hold and Drag Grip Handle - tightly aligned with minimal spacing, disabled for completed tasks in queue mode */}
+      {!isReorderDisabled ? (
+        <div
+          {...attributes}
+          {...listeners}
+          className="mt-1 p-0 cursor-grab active:cursor-grabbing text-neutral-500 hover:text-white opacity-25 group-hover/item:opacity-90 transition-opacity touch-none shrink-0"
+          title="Hold and drag to reorder"
+        >
+          <GripVertical className="w-3 h-3.5" />
+        </div>
+      ) : (
+        <div className="w-3 shrink-0" />
+      )}
 
       {/* Custom Rounded Liquid Glass Checkbox */}
       <button
@@ -222,12 +237,14 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(state.title);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCapsuleHovered, setIsCapsuleHovered] = useState(false);
   const expandedSizeRef = useRef<{ width: number; height: number }>({ width: 380, height: 320 });
 
   const handleCollapse = async (e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
+    setIsCapsuleHovered(false);
     try {
       const appWindow = getCurrentWebviewWindow();
       const factor = await appWindow.scaleFactor().catch(() => 1);
@@ -239,7 +256,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
         height: Math.max(logicalHeight, 160),
       };
       setIsCollapsed(true);
-      await appWindow.setSize(new LogicalSize(185, 42));
+      await appWindow.setSize(new LogicalSize(196, 48));
     } catch {
       expandedSizeRef.current = {
         width: window.innerWidth || 380,
@@ -253,6 +270,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
     if (e) {
       e.stopPropagation();
     }
+    setIsCapsuleHovered(false);
     try {
       const appWindow = getCurrentWebviewWindow();
       const target = expandedSizeRef.current || { width: 380, height: 320 };
@@ -262,6 +280,35 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
     }
     setIsCollapsed(false);
   };
+
+  useEffect(() => {
+    if (!isCollapsed) {
+      setIsCapsuleHovered(false);
+      return;
+    }
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (!e.relatedTarget) {
+        setIsCapsuleHovered(false);
+      }
+    };
+
+    const handleBlur = () => {
+      setIsCapsuleHovered(false);
+    };
+
+    window.addEventListener("mouseout", handleMouseLeave);
+    window.addEventListener("mouseleave", handleMouseLeave);
+    document.addEventListener("mouseleave", handleMouseLeave);
+    window.addEventListener("blur", handleBlur);
+
+    return () => {
+      window.removeEventListener("mouseout", handleMouseLeave);
+      window.removeEventListener("mouseleave", handleMouseLeave);
+      document.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, [isCollapsed]);
 
   const editInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -471,9 +518,23 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
     if (!over || active.id === over.id) return;
 
     const oldIndex = todos.findIndex((t) => t.id === active.id);
-    const newIndex = todos.findIndex((t) => t.id === over.id);
+    let newIndex = todos.findIndex((t) => t.id === over.id);
 
-    if (oldIndex !== -1 && newIndex !== -1) {
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const isQueue = theme.completionOrder === "queue";
+    if (isQueue) {
+      // Completed tasks cannot be moved in queue mode
+      if (todos[oldIndex]?.completed) return;
+
+      // Unchecked tasks cannot be placed past the first completed task
+      const firstCompletedIdx = todos.findIndex((t) => t.completed);
+      if (firstCompletedIdx !== -1 && newIndex >= firstCompletedIdx) {
+        newIndex = Math.max(0, firstCompletedIdx - 1);
+      }
+    }
+
+    if (oldIndex !== newIndex) {
       onReorderTodos(oldIndex, newIndex);
     }
   };
@@ -493,17 +554,26 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
         data-tauri-drag-region
         onMouseDown={handleStartDrag}
         onClick={handleExpand}
-        className="w-screen h-screen p-0 m-0 box-border overflow-hidden bg-transparent flex items-center justify-center select-none cursor-pointer group"
+        onMouseLeave={() => setIsCapsuleHovered(false)}
+        onPointerLeave={() => setIsCapsuleHovered(false)}
+        className="w-screen h-screen p-1.5 box-border overflow-hidden bg-transparent flex items-center justify-center select-none cursor-pointer"
         title="Click anywhere to expand Taskmaster"
       >
         <div
           data-tauri-drag-region
-          className="w-full h-full flex items-center justify-between px-2.5 py-1 rounded-full border border-white/20 hover:border-[#ff5733]/80 transition-all duration-200"
+          onMouseEnter={() => setIsCapsuleHovered(true)}
+          onMouseLeave={() => setIsCapsuleHovered(false)}
+          onPointerEnter={() => setIsCapsuleHovered(true)}
+          onPointerLeave={() => setIsCapsuleHovered(false)}
+          className="w-full h-full flex items-center justify-between px-2.5 py-0.5 rounded-full transition-all duration-200 overflow-hidden box-border"
           style={{
             backgroundColor: bgStyle,
             backdropFilter: `blur(${theme.blur || 32}px)`,
             WebkitBackdropFilter: `blur(${theme.blur || 32}px)`,
-            boxShadow: `0 4px 20px rgba(0,0,0,0.6), 0 0 12px ${accentColor}40`,
+            border: `1.5px solid ${isCapsuleHovered ? accentColor : "rgba(255, 255, 255, 0.2)"}`,
+            boxShadow: isCapsuleHovered
+              ? `0 0 0 1px ${accentColor}30, 0 0 6px ${accentColor}40`
+              : "none",
           }}
         >
           {/* Logo & Counter Badge */}
@@ -533,7 +603,9 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
           <button
             type="button"
             onClick={handleExpand}
-            className="p-1 rounded-full hover:bg-white/20 text-neutral-400 group-hover:text-white transition-colors cursor-pointer shrink-0"
+            className={`p-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer shrink-0 ${
+              isCapsuleHovered ? "text-white" : "text-neutral-400"
+            }`}
             title="Expand widget"
           >
             <Maximize2 className="w-3 h-3 text-white/80" />
@@ -772,6 +844,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
                     density={theme.density || "comfortable"}
                     completedStyle={theme.completedStyle || "strike"}
                     accentColor={accentColor}
+                    isQueueMode={theme.completionOrder === "queue"}
                     editingId={editingId}
                     editingText={editingText}
                     editInputRef={editInputRef}

@@ -20,6 +20,7 @@ export interface OverlayTheme {
   progressStyle: string; // 'both' | 'bar' | 'fraction' | 'none'
   completedStyle: string; // 'strike' | 'dim' | 'tick'
   animation: string; // 'none' | 'subtle' | 'playful'
+  completionOrder?: "maintain" | "queue"; // 'maintain' | 'queue'
 }
 
 export interface OverlayState {

@@ -26,6 +26,12 @@ pub struct OverlayTheme {
     pub progress_style: String,
     pub completed_style: String,
     pub animation: String,
+    #[serde(default = "default_completion_order")]
+    pub completion_order: String,
+}
+
+fn default_completion_order() -> String {
+    "maintain".to_string()
 }
 
 impl Default for OverlayTheme {
@@ -46,6 +52,7 @@ impl Default for OverlayTheme {
             progress_style: "both".to_string(),
             completed_style: "strike".to_string(),
             animation: "subtle".to_string(),
+            completion_order: "maintain".to_string(),
         }
     }
 }

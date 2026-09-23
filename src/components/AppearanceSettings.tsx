@@ -1,6 +1,7 @@
 import React from "react";
 import { OverlayTheme } from "../types";
 import { Palette, Sliders, Type, Sparkles } from "lucide-react";
+import { ThemedSelect } from "./ThemedSelect";
 import { CURRENT_VERSION } from "../utils/updater";
 
 interface AppearanceSettingsProps {
@@ -18,6 +19,50 @@ const PRESET_THEMES = [
   { name: "Slate Minimal", card: "#20232a", text: "#f8fafc", accent: "#ff5733" },
   { name: "Monochrome Pitch", card: "#16171a", text: "#ffffff", accent: "#ffffff" },
   { name: "Frost Graphite", card: "#262930", text: "#ffffff", accent: "#ff5733" },
+];
+
+const FONT_OPTIONS = [
+  { value: "inter", label: "Inter (Modern Clean)", fontFamily: "var(--font-inter), sans-serif", description: "Default clean & balanced sans" },
+  { value: "jakarta", label: "Plus Jakarta Sans", fontFamily: "var(--font-jakarta), sans-serif", description: "Modern geometric grotesque" },
+  { value: "outfit", label: "Outfit", fontFamily: "var(--font-outfit), sans-serif", description: "Futuristic & sleek minimal" },
+  { value: "poppins", label: "Poppins", fontFamily: "var(--font-poppins), sans-serif", description: "Geometric with friendly curves" },
+  { value: "dmsans", label: "DM Sans", fontFamily: "var(--font-dmsans), sans-serif", description: "Subtle & contemporary" },
+  { value: "spacegrotesk", label: "Space Grotesk", fontFamily: "var(--font-spacegrotesk), sans-serif", description: "Cyberpunk tech monospace flavor" },
+  { value: "montserrat", label: "Montserrat", fontFamily: "var(--font-montserrat), sans-serif", description: "Bold architectural sans" },
+  { value: "quicksand", label: "Quicksand", fontFamily: "var(--font-quicksand), sans-serif", description: "Soft & rounded friendly" },
+  { value: "space", label: "JetBrains Mono", fontFamily: "var(--font-mono), monospace", description: "Developer code monospace" },
+  { value: "firacode", label: "Fira Code", fontFamily: "var(--font-firacode), monospace", description: "Coding terminal monospace" },
+  { value: "playfair", label: "Playfair Display", fontFamily: "var(--font-playfair), Georgia, serif", description: "High-end luxury editorial serif" },
+  { value: "serif", label: "Georgia Serif", fontFamily: "var(--font-serif), serif", description: "Classic literary serif" },
+];
+
+const PROGRESS_OPTIONS = [
+  { value: "both", label: "Bar and fraction (2/5)", description: "Visual progress bar and count" },
+  { value: "bar", label: "Bar only", description: "Minimal visual progress bar" },
+  { value: "fraction", label: "Fraction only", description: "Numeric count (e.g. 2/5)" },
+  { value: "none", label: "Hidden", description: "Hide progress indicators" },
+];
+
+const COMPLETED_STYLE_OPTIONS = [
+  { value: "strike", label: "Strikethrough & Dim", description: "Cross out task and reduce opacity" },
+  { value: "dim", label: "Dim text only", description: "Subtle muted opacity" },
+  { value: "tick", label: "Checkmark only", description: "Only show checkmark in checkbox" },
+];
+
+const COMPLETION_ORDER_OPTIONS = [
+  { value: "maintain", label: "Stay in place", description: "Tasks stay in their exact position when checked" },
+  { value: "queue", label: "Move to bottom (Queue)", description: "Checked tasks move to bottom in completion order" },
+];
+
+const DENSITY_OPTIONS = [
+  { value: "comfortable", label: "Comfortable", description: "Spacious row padding for relaxed viewing" },
+  { value: "compact", label: "Compact (High density)", description: "Tighter spacing to fit more tasks" },
+];
+
+const ANIMATION_OPTIONS = [
+  { value: "subtle", label: "Subtle & Smooth", description: "Gentle fluid transitions" },
+  { value: "playful", label: "Playful", description: "Lively spring interactions" },
+  { value: "none", label: "None (Instant)", description: "Instant without transitions" },
 ];
 
 export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
@@ -271,81 +316,79 @@ export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-5">
           <div>
             <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Font Family</label>
-            <select
+            <ThemedSelect
               value={theme.font || "inter"}
-              onChange={(e) => updateThemeField("font", e.target.value)}
-              className="w-full bg-[#14161a] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff5733]"
-            >
-              <option value="inter">Inter (Modern Clean)</option>
-              <option value="jakarta">Plus Jakarta Sans</option>
-              <option value="space">JetBrains Mono</option>
-              <option value="serif">Georgia Serif</option>
-            </select>
+              onChange={(val) => updateThemeField("font", val)}
+              options={FONT_OPTIONS}
+              accentColor={theme.accentColor || "#ff5733"}
+            />
           </div>
 
           <div>
             <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Progress Style</label>
-            <select
+            <ThemedSelect
               value={theme.progressStyle || "both"}
-              onChange={(e) => updateThemeField("progressStyle", e.target.value)}
-              className="w-full bg-[#14161a] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff5733]"
-            >
-              <option value="both">Bar and fraction (e.g. 2/5)</option>
-              <option value="bar">Bar only</option>
-              <option value="fraction">Fraction only</option>
-              <option value="none">Hidden</option>
-            </select>
+              onChange={(val) => updateThemeField("progressStyle", val)}
+              options={PROGRESS_OPTIONS}
+              accentColor={theme.accentColor || "#ff5733"}
+            />
           </div>
 
           <div>
             <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Completed Task Style</label>
-            <select
+            <ThemedSelect
               value={theme.completedStyle || "strike"}
-              onChange={(e) => updateThemeField("completedStyle", e.target.value)}
-              className="w-full bg-[#14161a] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff5733]"
-            >
-              <option value="strike">Strikethrough & Dim</option>
-              <option value="dim">Dim text only</option>
-              <option value="tick">Checkmark only</option>
-            </select>
+              onChange={(val) => updateThemeField("completedStyle", val)}
+              options={COMPLETED_STYLE_OPTIONS}
+              accentColor={theme.accentColor || "#ff5733"}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Task Completion Order</label>
+            <ThemedSelect
+              value={theme.completionOrder || "maintain"}
+              onChange={(val) => updateThemeField("completionOrder", val as "maintain" | "queue")}
+              options={COMPLETION_ORDER_OPTIONS}
+              accentColor={theme.accentColor || "#ff5733"}
+            />
           </div>
 
           <div>
             <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Task Density</label>
-            <select
+            <ThemedSelect
               value={theme.density || "comfortable"}
-              onChange={(e) => updateThemeField("density", e.target.value)}
-              className="w-full bg-[#14161a] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff5733]"
-            >
-              <option value="comfortable">Comfortable</option>
-              <option value="compact">Compact (High density)</option>
-            </select>
+              onChange={(val) => updateThemeField("density", val)}
+              options={DENSITY_OPTIONS}
+              accentColor={theme.accentColor || "#ff5733"}
+            />
           </div>
 
           <div>
             <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Motion Animations</label>
-            <select
+            <ThemedSelect
               value={theme.animation || "subtle"}
-              onChange={(e) => updateThemeField("animation", e.target.value)}
-              className="w-full bg-[#14161a] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff5733]"
-            >
-              <option value="subtle">Subtle & Smooth</option>
-              <option value="playful">Playful</option>
-              <option value="none">None (Instant)</option>
-            </select>
+              onChange={(val) => updateThemeField("animation", val)}
+              options={ANIMATION_OPTIONS}
+              accentColor={theme.accentColor || "#ff5733"}
+            />
           </div>
+        </div>
 
-          <div className="flex items-end pb-2">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={theme.showTitle ?? true}
-                onChange={(e) => updateThemeField("showTitle", e.target.checked)}
-                className="w-4 h-4 accent-[#ff5733] rounded cursor-pointer"
-              />
-              <span className="text-xs text-neutral-200 font-medium">Show List Title</span>
-            </label>
-          </div>
+        <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={theme.showTitle ?? true}
+              onChange={(e) => updateThemeField("showTitle", e.target.checked)}
+              className="w-4 h-4 rounded cursor-pointer"
+              style={{ accentColor: theme.accentColor || "#ff5733" }}
+            />
+            <span className="text-xs text-neutral-200 font-medium">Show List Title Header</span>
+          </label>
+          <span className="text-[11px] text-neutral-400">
+            Toggles visibility of widget title header
+          </span>
         </div>
       </div>
 

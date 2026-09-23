@@ -222,10 +222,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: "inter", label: "Inter (Clean)" },
+                    { id: "inter", label: "Inter" },
                     { id: "jakarta", label: "Plus Jakarta" },
+                    { id: "outfit", label: "Outfit" },
+                    { id: "poppins", label: "Poppins" },
+                    { id: "dmsans", label: "DM Sans" },
+                    { id: "spacegrotesk", label: "Space Grotesk" },
+                    { id: "montserrat", label: "Montserrat" },
+                    { id: "quicksand", label: "Quicksand" },
                     { id: "space", label: "JetBrains Mono" },
-                    { id: "serif", label: "Serif (Classic)" },
+                    { id: "firacode", label: "Fira Code" },
+                    { id: "playfair", label: "Playfair Display" },
+                    { id: "serif", label: "Georgia Serif" },
                   ].map((f) => (
                     <button
                       key={f.id}

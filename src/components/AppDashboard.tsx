@@ -5,6 +5,7 @@ import { OverlayState, OverlayTheme, TodoItem } from "../types";
 import { UseTimerReturn } from "../hooks/useTimer";
 import { FocusTimer } from "./FocusTimer";
 import { AppearanceSettings } from "./AppearanceSettings";
+import { fontFamilies } from "./StickyWidget";
 import { 
   Check, 
   Plus, 
@@ -63,7 +64,9 @@ interface SortableGoalRowProps {
   index: number;
   total: number;
   accentColor: string;
+  fontFamily?: string;
   isFocused: boolean;
+  isQueueMode: boolean;
   onToggle: (id: string) => void;
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
@@ -75,12 +78,15 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
   index: _index,
   total: _total,
   accentColor,
+  fontFamily,
   isFocused,
+  isQueueMode,
   onToggle,
   onEdit,
   onDelete,
   onFocusTask,
 }) => {
+  const isReorderDisabled = isQueueMode && todo.completed;
   const {
     attributes,
     listeners,
@@ -88,7 +94,7 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: todo.id });
+  } = useSortable({ id: todo.id, disabled: isReorderDisabled });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -135,15 +141,19 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
         )}
       </button>
 
-      {/* Drag Handle - compact */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="-mr-1 p-0.5 cursor-grab active:cursor-grabbing text-neutral-500 hover:text-neutral-300 transition-colors touch-none select-none rounded hover:bg-white/[0.05]"
-        title="Drag to reorder"
-      >
-        <GripVertical className="w-3.5 h-3.5" />
-      </div>
+      {/* Drag Handle - compact, disabled for completed tasks in queue mode */}
+      {!isReorderDisabled ? (
+        <div
+          {...attributes}
+          {...listeners}
+          className="-mr-1 p-0.5 cursor-grab active:cursor-grabbing text-neutral-500 hover:text-neutral-300 transition-colors touch-none select-none rounded hover:bg-white/[0.05]"
+          title="Drag to reorder"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </div>
+      ) : (
+        <div className="w-4 shrink-0" />
+      )}
 
       {/* Task text editable input */}
       <input
@@ -154,6 +164,7 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
         onKeyDown={(e) => {
           if (e.key === "Enter") handleBlur();
         }}
+        style={fontFamily ? { fontFamily } : undefined}
         className={`flex-1 bg-transparent text-[13px] font-medium text-white focus:outline-none focus:bg-white/[0.05] rounded-lg px-2 py-1 transition-colors ${
           todo.completed ? "line-through text-neutral-400 opacity-60" : ""
         }`}
@@ -413,9 +424,23 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
     if (!over || active.id === over.id) return;
 
     const oldIndex = todos.findIndex((t) => t.id === active.id);
-    const newIndex = todos.findIndex((t) => t.id === over.id);
+    let newIndex = todos.findIndex((t) => t.id === over.id);
 
-    if (oldIndex !== -1 && newIndex !== -1) {
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const isQueue = theme.completionOrder === "queue";
+    if (isQueue) {
+      // Completed tasks cannot be moved in queue mode
+      if (todos[oldIndex]?.completed) return;
+
+      // Unchecked tasks cannot be placed past the first completed task
+      const firstCompletedIdx = todos.findIndex((t) => t.completed);
+      if (firstCompletedIdx !== -1 && newIndex >= firstCompletedIdx) {
+        newIndex = Math.max(0, firstCompletedIdx - 1);
+      }
+    }
+
+    if (oldIndex !== newIndex) {
       onReorderTodos(oldIndex, newIndex);
     }
   };
@@ -835,6 +860,8 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                               index={index}
                               total={filteredTodos.length}
                               accentColor={accentColor}
+                              fontFamily={fontFamilies[theme.font || "inter"]}
+                              isQueueMode={theme.completionOrder === "queue"}
                               isFocused={timer.timerState.activeTodoId === todo.id}
                               onToggle={onToggleTodo}
                               onEdit={onEditTodo}

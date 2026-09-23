@@ -1,5 +1,6 @@
 pub mod models;
 pub mod store;
+pub mod updater;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -177,8 +178,26 @@ async fn add_todo(text: String, ctx: State<'_, AppContext>) -> Result<OverlaySta
 async fn toggle_todo(id: String, ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
     let updated = {
         let mut current = ctx.state.write().await;
-        if let Some(item) = current.todos.iter_mut().find(|t| t.id == id) {
+        if let Some(pos) = current.todos.iter().position(|t| t.id == id) {
+            let mut item = current.todos.remove(pos);
             item.completed = !item.completed;
+
+            if current.theme.completion_order == "queue" {
+                if item.completed {
+                    // Checked: moves to the very back in a queue
+                    current.todos.push(item);
+                } else {
+                    // Unchecked: moves to the back side of the unchecked to-dos (before first completed todo)
+                    if let Some(first_completed_idx) = current.todos.iter().position(|t| t.completed) {
+                        current.todos.insert(first_completed_idx, item);
+                    } else {
+                        current.todos.push(item);
+                    }
+                }
+            } else {
+                // Stay in the same place
+                current.todos.insert(pos, item);
+            }
         }
         save_state(&current)?;
         current.clone()
@@ -227,9 +246,24 @@ async fn reorder_todos(from_index: usize, to_index: usize, ctx: State<'_, AppCon
         let mut current = ctx.state.write().await;
         let len = current.todos.len();
         if from_index < len && to_index < len {
-            let item = current.todos.remove(from_index);
-            current.todos.insert(to_index, item);
-            save_state(&current)?;
+            if current.theme.completion_order == "queue" {
+                if current.todos[from_index].completed {
+                    return Ok(current.clone());
+                }
+                let first_completed_idx = current.todos.iter().position(|t| t.completed).unwrap_or(len);
+                let target_index = if first_completed_idx > 0 && to_index >= first_completed_idx {
+                    first_completed_idx - 1
+                } else {
+                    to_index
+                };
+                let item = current.todos.remove(from_index);
+                current.todos.insert(target_index, item);
+                save_state(&current)?;
+            } else {
+                let item = current.todos.remove(from_index);
+                current.todos.insert(to_index, item);
+                save_state(&current)?;
+            }
         }
         current.clone()
     };
@@ -242,7 +276,14 @@ async fn reorder_todos(from_index: usize, to_index: usize, ctx: State<'_, AppCon
 async fn update_theme(theme: OverlayTheme, ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
     let updated = {
         let mut current = ctx.state.write().await;
+        let switching_to_queue = theme.completion_order == "queue" && current.theme.completion_order != "queue";
         current.theme = theme;
+        if switching_to_queue {
+            let mut unchecked: Vec<TodoItem> = current.todos.iter().filter(|t| !t.completed).cloned().collect();
+            let mut checked: Vec<TodoItem> = current.todos.iter().filter(|t| t.completed).cloned().collect();
+            unchecked.append(&mut checked);
+            current.todos = unchecked;
+        }
         save_state(&current)?;
         current.clone()
     };
@@ -386,8 +427,25 @@ async fn broadcast_update(ctx: &AppContext, state: &OverlayState) {
     }
 }
 
+#[tauri::command]
+fn get_app_install_info() -> Result<updater::AppInstallInfo, String> {
+    updater::get_install_info()
+}
+
+#[tauri::command]
+async fn download_and_apply_update(
+    app: AppHandle,
+    download_url: String,
+    total_bytes: u64,
+    is_portable: bool,
+) -> Result<(), String> {
+    updater::download_and_apply_update(app, download_url, total_bytes, is_portable).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    updater::cleanup_old_updates();
+
     let initial_state = load_state();
     let shared_state = Arc::new(RwLock::new(initial_state));
     let app_handle_holder = Arc::new(RwLock::new(None));
@@ -417,7 +475,9 @@ pub fn run() {
             show_main_window,
             toggle_widget_window,
             close_widget_window,
-            is_widget_open
+            is_widget_open,
+            get_app_install_info,
+            download_and_apply_update
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
