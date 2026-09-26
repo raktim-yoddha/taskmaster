@@ -97,12 +97,21 @@ export function SegmentedControl<T extends string = string>({
   }, [value]);
 
   const Component = as === "nav" ? "nav" : "div";
+  const hasCustomPadding = /\bp[xy]?-/.test(className);
+
+  const hasCustomButtonX = /\bpx-/.test(buttonClassName);
+  const hasCustomButtonY = /\bpy-/.test(buttonClassName);
+  const hasCustomButtonAll = /\bp-[0-9\[]/.test(buttonClassName);
+
+  const buttonPaddingX = !hasCustomButtonAll && !hasCustomButtonX ? "px-3 sm:px-3.5" : "";
+  const buttonPaddingY = !hasCustomButtonAll && !hasCustomButtonY ? "py-1.5" : "";
+  const defaultButtonPadding = [buttonPaddingX, buttonPaddingY].filter(Boolean).join(" ");
 
   return (
     <Component
       ref={containerRef as any}
       role="tablist"
-      className={`relative inline-flex items-center bg-[#15171b]/90 p-1 rounded-full border border-white/[0.08] shadow-inner shrink-0 select-none isolate ${className}`}
+      className={`relative inline-flex items-center bg-[#15171b]/90 ${hasCustomPadding ? "" : "p-1"} rounded-full border border-white/[0.08] shadow-inner shrink-0 select-none isolate ${className}`}
     >
       {/* Sliding Active Pill Indicator */}
       <div
@@ -146,7 +155,7 @@ export function SegmentedControl<T extends string = string>({
             aria-selected={isActive}
             title={option.title}
             onClick={() => onChange(option.id)}
-            className={`relative z-10 flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-colors duration-200 cursor-pointer outline-none focus:outline-none focus-visible:outline-none border-0 bg-transparent ${
+            className={`relative z-10 flex items-center gap-1.5 ${defaultButtonPadding} rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-colors duration-200 cursor-pointer outline-none focus:outline-none focus-visible:outline-none border-0 bg-transparent ${
               isActive ? "text-white" : "text-neutral-400 hover:text-white"
             } ${buttonClassName}`}
           >

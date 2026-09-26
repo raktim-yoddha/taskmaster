@@ -485,17 +485,17 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
         data-tauri-drag-region
         onMouseDown={handleHeaderMouseDown}
         onDoubleClick={handleHeaderDoubleClick}
-        className="liquid-glass-shell border-b border-white/[0.08] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 sticky top-0 z-40 backdrop-blur-2xl select-none"
+        className="liquid-glass-shell border-b border-white/[0.08] pl-3 sm:pl-3.5 pr-0 py-0 h-9 sm:h-[38px] flex items-center justify-between sticky top-0 z-40 backdrop-blur-2xl select-none"
       >
         {/* Left: App Logo & View Switcher */}
-        <div className="flex items-center gap-3 sm:gap-4 shrink-0" data-no-drag>
-          <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0" data-no-drag>
+          <div className="flex items-center gap-2 shrink-0">
             <img
               src="/logo2.png"
               alt="Taskmaster Logo"
-              className="w-6 h-6 sm:w-7 sm:h-7 object-contain select-none transition-transform hover:scale-105 duration-200"
+              className="w-4.5 h-4.5 sm:w-5 sm:h-5 object-contain select-none transition-transform hover:scale-105 duration-200"
             />
-            <span className="text-sm font-bold tracking-tight text-white select-none whitespace-nowrap">
+            <span className="text-xs font-bold tracking-tight text-white select-none whitespace-nowrap">
               Taskmaster
             </span>
           </div>
@@ -503,6 +503,8 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           {/* Desktop View Navigation Switcher (Segmented Liquid Glass Pills) */}
           <SegmentedControl
             as="nav"
+            className="p-0.5"
+            buttonClassName="px-2.5 py-0.5 text-xs font-medium"
             options={[
               {
                 id: "todo",
@@ -524,7 +526,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
 
         {/* Center: Search pill (visible on wide screens for both To-do and History) */}
         <div className="relative hidden lg:flex items-center max-w-xs flex-1 min-w-0 mx-2" data-no-drag>
-          <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3.5 pointer-events-none shrink-0" />
+          <Search className="w-3 h-3 text-neutral-400 absolute left-2.5 pointer-events-none shrink-0" />
           <input
             type="text"
             placeholder={activeView === "history" ? "Search past tasks or dates..." : "Search tasks or goals..."}
@@ -536,7 +538,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                 setSearchQuery(e.target.value);
               }
             }}
-            className="w-full bg-[#16181c]/90 border border-white/[0.08] hover:border-white/[0.14] focus:border-[#ff5733]/65 rounded-full pl-9 pr-8 py-1.5 text-xs text-white placeholder:text-neutral-500 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff5733]/20"
+            className="w-full h-6.5 bg-[#16181c]/90 border border-white/[0.08] hover:border-white/[0.14] focus:border-[#ff5733]/65 rounded-full pl-7 pr-6 text-xs text-white placeholder:text-neutral-500 transition-all focus:outline-none focus:ring-1 focus:ring-[#ff5733]/30"
           />
           {(activeView === "history" ? historySearchQuery : searchQuery) && (
             <button
@@ -548,7 +550,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                   setSearchQuery("");
                 }
               }}
-              className="absolute right-3 text-neutral-400 hover:text-white text-xs cursor-pointer"
+              className="absolute right-2 text-neutral-400 hover:text-white text-xs cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>
@@ -556,16 +558,16 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
         </div>
 
         {/* Right: Update, Timer Badge, Widget Action & Window Controls */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0" data-no-drag>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 h-full" data-no-drag>
           {/* Update Available Header Notification Pill */}
           {updateInfo && updateInfo.hasUpdate && (
             <button
               type="button"
               onClick={() => setIsUpdateModalOpen(true)}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ff5733]/15 text-[#ff5733] border border-[#ff5733]/30 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#ff5733]/25 transition-all shadow-sm"
+              className="hidden md:flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#ff5733]/15 text-[#ff5733] border border-[#ff5733]/30 text-[11px] font-semibold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#ff5733]/25 transition-all shadow-sm"
               title="Click to view update details"
             >
-              <ArrowUpCircle className="w-3.5 h-3.5 text-[#ff5733] shrink-0" />
+              <ArrowUpCircle className="w-3 h-3 text-[#ff5733] shrink-0" />
               <span className="whitespace-nowrap">v{updateInfo.version} Available!</span>
             </button>
           )}
@@ -575,17 +577,17 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
             <button
               type="button"
               onClick={() => setActiveView("todo")}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#ff5733]/15 border border-[#ff5733]/30 text-[#ff5733] text-xs font-mono font-bold whitespace-nowrap shrink-0 animate-pulse cursor-pointer shadow-sm shadow-[#ff5733]/10"
+              className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#ff5733]/15 border border-[#ff5733]/30 text-[#ff5733] text-[11px] font-mono font-bold whitespace-nowrap shrink-0 animate-pulse cursor-pointer shadow-sm shadow-[#ff5733]/10"
               title="Click to view running timer"
             >
-              <span className="w-2 h-2 rounded-full bg-[#ff5733] animate-ping shrink-0" />
-              <span className="flex items-center gap-1.5 whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ff5733] animate-ping shrink-0" />
+              <span className="flex items-center gap-1 whitespace-nowrap">
                 {timer.timerState.mode === "stopwatch" ? (
-                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <Clock className="w-3 h-3 shrink-0" />
                 ) : timer.timerState.mode === "pomodoro" ? (
-                  <Flame className="w-3.5 h-3.5 shrink-0" />
+                  <Flame className="w-3 h-3 shrink-0" />
                 ) : (
-                  <Hourglass className="w-3.5 h-3.5 shrink-0" />
+                  <Hourglass className="w-3 h-3 shrink-0" />
                 )}
                 <span className="whitespace-nowrap">
                   {Math.floor(timer.timerState.timeRemaining / 60)}:
@@ -599,7 +601,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           <button
             type="button"
             onClick={handleToggleWidget}
-            className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all shadow-md cursor-pointer ${isWidgetOpen
+            className={`flex items-center gap-1.5 h-6 px-2.5 sm:px-3 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all shadow-md cursor-pointer ${isWidgetOpen
                 ? "bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.12]"
                 : "liquid-coral-btn"
               }`}
@@ -607,12 +609,12 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           >
             {isWidgetOpen ? (
               <>
-                <X className="w-3.5 h-3.5 shrink-0" />
+                <X className="w-3 h-3 shrink-0" />
                 <span className="whitespace-nowrap">Close Widget</span>
               </>
             ) : (
               <>
-                <Play className="w-3 h-3 fill-current shrink-0" />
+                <Play className="w-2.5 h-2.5 fill-current shrink-0" />
                 <span className="whitespace-nowrap">Open Widget</span>
               </>
             )}
@@ -625,18 +627,18 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
               setSettingsDefaultTab("daily");
               setIsSettingsModalOpen(true);
             }}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/[0.18] flex items-center justify-center text-neutral-300 hover:text-white transition-all cursor-pointer shadow-sm shrink-0"
+            className="w-6.5 h-6.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/[0.18] flex items-center justify-center text-neutral-300 hover:text-white transition-all cursor-pointer shadow-sm shrink-0"
             title="Settings (Daily To-Do, Appearance, Updates)"
           >
             <Settings className="w-3.5 h-3.5" />
           </button>
 
-          {/* Native Windows Controls */}
-          <div className="flex items-center ml-1 sm:ml-2 border-l border-white/[0.08] pl-1.5 sm:pl-2 gap-1 shrink-0">
+          {/* Native Windows Controls: Full height and flush against top-right corner */}
+          <div className="flex items-stretch h-full shrink-0 ml-1">
             <button
               type="button"
               onClick={handleMinimize}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+              className="w-11 h-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               title="Minimize"
             >
               <Minus className="w-3.5 h-3.5" />
@@ -645,7 +647,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
             <button
               type="button"
               onClick={handleToggleMaximize}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+              className="w-11 h-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               title={isMaximized ? "Restore" : "Maximize"}
             >
               {isMaximized ? (
@@ -658,10 +660,10 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#ff5733] transition-colors cursor-pointer"
+              className="w-12 h-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#e81123] active:bg-[#bf0f1d] transition-colors cursor-pointer"
               title="Close"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

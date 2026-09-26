@@ -90,7 +90,7 @@ const filesToDeploy = [
 // Ensure any running instances of Taskmaster are stopped so files can be replaced on Windows
 try {
   if (process.platform === "win32") {
-    execSync('taskkill /F /IM "Taskmaster-Portable.exe" /IM "Taskmaster-v*.exe" /IM "Taskmaster.exe" /IM "Taskmaster-Everywhere-Portable.exe" /IM "Taskmaster Everywhere.exe" /IM "todo-overlay-app.exe" 2>nul || exit 0', { stdio: "ignore" });
+    execSync('taskkill /F /FI "IMAGENAME eq Taskmaster*" /IM "todo-overlay-app.exe" 2>nul || exit 0', { stdio: "ignore" });
   }
 } catch {
   // Ignore if not running

@@ -179,7 +179,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                   const val = parseInt(e.target.value, 10);
                   if (!isNaN(val) && val > 0) onUpdateSettings({ focusDuration: val * 60 });
                 }}
-                className="liquid-glass-input w-full rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#ff5733]"
+                className="liquid-glass-input w-full rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#ff5733] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
 
@@ -194,7 +194,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                   const val = parseInt(e.target.value, 10);
                   if (!isNaN(val) && val > 0) onUpdateSettings({ shortBreakDuration: val * 60 });
                 }}
-                className="liquid-glass-input w-full rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#ff5733]"
+                className="liquid-glass-input w-full rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#ff5733] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
 
@@ -209,7 +209,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                   const val = parseInt(e.target.value, 10);
                   if (!isNaN(val) && val > 0) onUpdateSettings({ longBreakDuration: val * 60 });
                 }}
-                className="liquid-glass-input w-full rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#ff5733]"
+                className="liquid-glass-input w-full rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#ff5733] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
           </div>
@@ -239,7 +239,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
             onChange={(val) => onSetPhase(val as PomodoroPhase)}
             accentColor={primaryAccent}
             className="bg-[#14161a]/80 border-white/[0.06]"
-            buttonClassName="px-4 font-medium"
+            buttonClassName="px-4 py-1.5 font-medium"
           />
         </div>
       )}
@@ -405,7 +405,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                 max="300"
                 value={customMinutes}
                 onChange={(e) => setCustomMinutes(e.target.value)}
-                className="w-12 liquid-glass-input rounded-full px-2 py-1 text-xs text-white font-mono text-center focus:outline-none focus:border-[#ff5733]"
+                className="w-12 liquid-glass-input rounded-full px-2 py-1 text-xs text-white font-mono text-center focus:outline-none focus:border-[#ff5733] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 placeholder="m"
               />
               <button
