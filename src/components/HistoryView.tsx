@@ -267,7 +267,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                             <span
                               className={`text-xs font-medium truncate ${
                                 todo.completed
-                                  ? "text-neutral-400 line-through decoration-neutral-600"
+                                  ? "text-neutral-300"
                                   : "text-neutral-100"
                               }`}
                             >
@@ -356,7 +356,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
             {/* Warning Text */}
             <div className="flex items-center gap-2 text-[11px] text-neutral-400 relative">
-              <AlertTriangle className="w-3.5 h-3.5 text-[#ff902b] shrink-0" />
+              <AlertTriangle className="w-3.5 h-3.5 text-[#ff5733] shrink-0" />
               <span>This card and all its archived tasks will be permanently removed.</span>
             </div>
 

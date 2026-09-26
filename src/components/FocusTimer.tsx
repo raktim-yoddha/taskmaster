@@ -90,7 +90,9 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
     }
   };
 
-  const primaryAccent = accentColor || "#ff5733";
+  const primaryAccent = (accentColor && accentColor !== "#ff902b" && !accentColor.toLowerCase().includes("ff902b"))
+    ? accentColor
+    : "#ff5733";
 
   return (
     <div className="liquid-glass-card rounded-[22px] p-6 flex flex-col relative overflow-hidden shadow-2xl">
@@ -117,7 +119,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           ]}
           value={timer.mode}
           onChange={(val) => onSetMode(val as "pomodoro" | "countdown" | "stopwatch")}
-          accentColor={accentColor}
+          accentColor={primaryAccent}
         />
 
         {/* Sound toggle & Settings button */}
@@ -235,7 +237,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
             ]}
             value={timer.pomodoroPhase}
             onChange={(val) => onSetPhase(val as PomodoroPhase)}
-            accentColor={accentColor}
+            accentColor={primaryAccent}
             className="bg-[#14161a]/80 border-white/[0.06]"
             buttonClassName="px-4 font-medium"
           />

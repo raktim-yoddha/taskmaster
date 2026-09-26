@@ -80,7 +80,11 @@ export default function App() {
 
     listen<OverlayState>("state-changed", (event) => {
       if (isMounted && event.payload) {
-        setState(event.payload);
+        const payload = event.payload;
+        if (payload.theme?.accentColor === "#ff902b") {
+          payload.theme.accentColor = "#ff5733";
+        }
+        setState(payload);
       }
     })
       .then((fn) => {
@@ -105,7 +109,12 @@ export default function App() {
     async function fetchInitial() {
       try {
         const fetchedState = await invoke<OverlayState>("get_state");
-        if (fetchedState) setState(fetchedState);
+        if (fetchedState) {
+          if (fetchedState.theme?.accentColor === "#ff902b") {
+            fetchedState.theme.accentColor = "#ff5733";
+          }
+          setState(fetchedState);
+        }
       } catch (err) {
         console.warn("Tauri API not active or preview mode:", err);
       } finally {
@@ -239,21 +248,30 @@ export default function App() {
   }, []);
 
   const handleUpdateTheme = useCallback(async (newTheme: OverlayTheme) => {
+    const cleanTheme = {
+      ...newTheme,
+      accentColor: (newTheme.accentColor === "#ff902b" || newTheme.accentColor?.toLowerCase().includes("ff902b")) ? "#ff5733" : newTheme.accentColor,
+    };
     setState((prev) => {
-      const switchingToQueue = newTheme.completionOrder === "queue" && prev.theme.completionOrder !== "queue";
+      const switchingToQueue = cleanTheme.completionOrder === "queue" && prev.theme.completionOrder !== "queue";
       let newTodos = prev.todos;
       if (switchingToQueue) {
         const unchecked = prev.todos.filter((t) => !t.completed);
         const checked = prev.todos.filter((t) => t.completed);
         newTodos = [...unchecked, ...checked];
       }
-      return { ...prev, theme: newTheme, todos: newTodos };
+      return { ...prev, theme: cleanTheme, todos: newTodos };
     });
     try {
       const updated = await invoke<OverlayState>("update_theme", {
-        theme: newTheme,
+        theme: cleanTheme,
       });
-      if (updated) setState(updated);
+      if (updated) {
+        if (updated.theme?.accentColor === "#ff902b") {
+          updated.theme.accentColor = "#ff5733";
+        }
+        setState(updated);
+      }
     } catch (e) {
       console.error("update_theme error:", e);
     }

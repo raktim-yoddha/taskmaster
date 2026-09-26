@@ -117,13 +117,17 @@ export function SegmentedControl<T extends string = string>({
           width: `${indicator.width}px`,
           height: `${indicator.height}px`,
           opacity: isReady ? 1 : 0,
-          ...(accentColor
+          ...((accentColor && accentColor !== "#ff902b" && !accentColor.toLowerCase().includes("ff902b"))
             ? {
                 backgroundColor: accentColor,
                 borderColor: accentColor,
                 boxShadow: `0 4px 14px -2px ${accentColor}66`,
               }
-            : {}),
+            : {
+                backgroundColor: "#ff5733",
+                borderColor: "#ff5733",
+                boxShadow: "0 4px 14px -2px rgba(255, 87, 51, 0.4)",
+              }),
         }}
       />
 

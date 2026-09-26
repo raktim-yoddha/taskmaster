@@ -436,12 +436,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
     }
   };
 
-  const handleClearCompleted = async () => {
-    const completedTodos = todos.filter((t) => t.completed);
-    for (const t of completedTodos) {
-      await onDeleteTodo(t.id);
-    }
-  };
 
   const handleTitleBlur = async () => {
     if (titleInput.trim() && titleInput !== state.title) {
@@ -804,17 +798,6 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                       </button>
-
-                      {completedCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={handleClearCompleted}
-                          className="text-[11px] text-neutral-300 hover:text-white font-medium px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.1] transition-colors cursor-pointer border border-white/10"
-                          title="Delete all completed tasks"
-                        >
-                          Clear done
-                        </button>
-                      )}
                     </div>
                   </div>
 

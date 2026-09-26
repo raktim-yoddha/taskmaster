@@ -15,7 +15,7 @@ interface AppearanceSettingsProps {
 const PRESET_THEMES = [
   { name: "Liquid Glass Coral", card: "#22252a", text: "#ffffff", accent: "#ff5733" },
   { name: "Smoked Obsidian", card: "#181a1e", text: "#f4f4f5", accent: "#ff6847" },
-  { name: "Deep Amber", card: "#23211e", text: "#ffffff", accent: "#ff902b" },
+  { name: "Crimson Eclipse", card: "#201a1c", text: "#ffffff", accent: "#ff4757" },
   { name: "Slate Minimal", card: "#20232a", text: "#f8fafc", accent: "#ff5733" },
   { name: "Monochrome Pitch", card: "#16171a", text: "#ffffff", accent: "#ffffff" },
   { name: "Frost Graphite", card: "#262930", text: "#ffffff", accent: "#ff5733" },
