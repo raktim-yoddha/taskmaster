@@ -6,6 +6,21 @@ pub struct TodoItem {
     pub id: String,
     pub text: String,
     pub completed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DailyHistoryRecord {
+    pub id: String,
+    pub date: String,
+    pub formatted_date: String,
+    pub title: String,
+    pub todos: Vec<TodoItem>,
+    pub completed_count: usize,
+    pub total_count: usize,
+    pub archived_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -57,12 +72,22 @@ impl Default for OverlayTheme {
     }
 }
 
+pub fn default_history_retention() -> u32 {
+    7
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct OverlayState {
     pub title: String,
     pub todos: Vec<TodoItem>,
     pub theme: OverlayTheme,
+    #[serde(default = "default_history_retention")]
+    pub history_retention_days: u32,
+    #[serde(default)]
+    pub history: Vec<DailyHistoryRecord>,
+    #[serde(default)]
+    pub last_active_date: String,
 }
 
 impl Default for OverlayState {
@@ -74,29 +99,37 @@ impl Default for OverlayState {
                     id: "todo-1".to_string(),
                     text: "Make a desktop app for to do overlay".to_string(),
                     completed: false,
+                    completed_at: None,
                 },
                 TodoItem {
                     id: "todo-2".to_string(),
                     text: "improve Orchestration layer Edge cases".to_string(),
                     completed: false,
+                    completed_at: None,
                 },
                 TodoItem {
                     id: "todo-3".to_string(),
                     text: "Fix the browser use feature edge cases".to_string(),
                     completed: false,
+                    completed_at: None,
                 },
                 TodoItem {
                     id: "todo-4".to_string(),
                     text: "Release version 0.2.1".to_string(),
                     completed: false,
+                    completed_at: None,
                 },
                 TodoItem {
                     id: "todo-5".to_string(),
                     text: "40 hours watch time".to_string(),
                     completed: false,
+                    completed_at: None,
                 },
             ],
             theme: OverlayTheme::default(),
+            history_retention_days: 7,
+            history: Vec::new(),
+            last_active_date: chrono::Local::now().format("%Y-%m-%d").to_string(),
         }
     }
 }

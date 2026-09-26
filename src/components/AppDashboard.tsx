@@ -4,18 +4,19 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { OverlayState, OverlayTheme, TodoItem } from "../types";
 import { UseTimerReturn } from "../hooks/useTimer";
 import { FocusTimer } from "./FocusTimer";
-import { AppearanceSettings } from "./AppearanceSettings";
 import { fontFamilies } from "./StickyWidget";
-import { 
-  Check, 
-  Plus, 
-  Trash2, 
-  Play, 
-  RotateCcw, 
+import { SegmentedControl } from "./SegmentedControl";
+import { HistoryView } from "./HistoryView";
+import { SettingsModal } from "./SettingsModal";
+import {
+  Check,
+  Plus,
+  Trash2,
+  Play,
+  RotateCcw,
   GripVertical,
   Target,
   CheckSquare,
-  Palette,
   Sparkles,
   Minus,
   Copy,
@@ -26,7 +27,9 @@ import {
   Lightbulb,
   Search,
   TrendingUp,
-  Square
+  Square,
+  Calendar,
+  Settings
 } from "lucide-react";
 import { checkForUpdate, UpdateInfo, CURRENT_VERSION } from "../utils/updater";
 import { UpdateNotificationModal } from "./UpdateNotificationModal";
@@ -55,9 +58,13 @@ interface AppDashboardProps {
   onReorderTodos: (fromIndex: number, toIndex: number) => Promise<void>;
   onSetTitle: (title: string) => Promise<void>;
   onUpdateTheme: (newTheme: OverlayTheme) => Promise<void>;
+  onUpdateRetentionDays: (days: number) => Promise<void>;
+  onClearHistory: () => Promise<void>;
+  onRestoreTodos: (todos: TodoItem[]) => Promise<void>;
+  onRolloverDailyTodos: () => Promise<void>;
 }
 
-type DashboardView = "todo" | "appearance";
+type DashboardView = "todo" | "history";
 
 interface SortableGoalRowProps {
   todo: TodoItem;
@@ -119,11 +126,10 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group liquid-glass-row rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-all duration-200 ${
-        isFocused
+      className={`group liquid-glass-row rounded-2xl px-3.5 py-3 flex items-center gap-3 transition-all duration-200 ${isFocused
           ? "border-[#ff5733]/60 bg-[#ff5733]/[0.08] ring-1 ring-[#ff5733]/30 shadow-lg shadow-[#ff5733]/10"
           : "border-white/[0.06] hover:border-white/[0.12]"
-      } ${isDragging ? "ring-2 ring-[#ff5733]/60 z-50 shadow-2xl scale-[1.01]" : ""}`}
+        } ${isDragging ? "ring-2 ring-[#ff5733]/60 z-50 shadow-2xl scale-[1.01]" : ""}`}
     >
       {/* Checkbox button */}
       <button
@@ -165,10 +171,20 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
           if (e.key === "Enter") handleBlur();
         }}
         style={fontFamily ? { fontFamily } : undefined}
-        className={`flex-1 bg-transparent text-[13px] font-medium text-white focus:outline-none focus:bg-white/[0.05] rounded-lg px-2 py-1 transition-colors ${
-          todo.completed ? "line-through text-neutral-400 opacity-60" : ""
-        }`}
+        className={`flex-1 bg-transparent text-[13px] font-medium text-white focus:outline-none focus:bg-white/[0.05] rounded-lg px-2 py-1 transition-colors ${todo.completed ? "line-through text-neutral-400 opacity-60" : ""
+          }`}
       />
+
+      {/* Tracked completion timestamp badge (visible in application, not in widget) */}
+      {todo.completed && todo.completedAt && (
+        <span
+          className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-mono text-emerald-400 select-none animate-in fade-in"
+          title={`Checked at ${todo.completedAt}`}
+        >
+          <Clock className="w-2.5 h-2.5 text-emerald-400" />
+          <span>{todo.completedAt}</span>
+        </span>
+      )}
 
       {/* Action buttons on hover */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -176,11 +192,10 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
         <button
           type="button"
           onClick={() => onFocusTask(todo.id)}
-          className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
-            isFocused
+          className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${isFocused
               ? "text-[#ff5733] bg-[#ff5733]/15 border border-[#ff5733]/30 shadow-sm"
               : "text-neutral-400 hover:text-[#ff5733] hover:bg-[#ff5733]/10"
-          }`}
+            }`}
           title={isFocused ? "Currently active focus task" : "Focus on this task in Timer"}
         >
           <Target className="w-3.5 h-3.5" />
@@ -210,6 +225,10 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   onReorderTodos,
   onSetTitle,
   onUpdateTheme,
+  onUpdateRetentionDays,
+  onClearHistory,
+  onRestoreTodos,
+  onRolloverDailyTodos,
 }) => {
   const [activeView, setActiveView] = useState<DashboardView>("todo");
   const [isMaximized, setIsMaximized] = useState(false);
@@ -218,6 +237,10 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   const [newTodoText, setNewTodoText] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Settings modal state
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsDefaultTab, setSettingsDefaultTab] = useState<"daily" | "appearance" | "updates">("daily");
 
   // Auto-update notification state
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -477,35 +500,25 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           </div>
 
           {/* Desktop View Navigation Switcher (Segmented Liquid Glass Pills) */}
-          <nav className="flex items-center bg-[#15171b]/90 p-1 rounded-full border border-white/[0.08] shadow-inner shrink-0">
-            <button
-              type="button"
-              onClick={() => setActiveView("todo")}
-              className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                activeView === "todo"
-                  ? "bg-[#ff5733] text-white shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
-                  : "text-neutral-400 hover:text-white"
-              }`}
-              title="To do: Task List & Focus Timer"
-            >
-              <CheckSquare className="w-3.5 h-3.5 shrink-0" />
-              <span className="whitespace-nowrap">To do</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveView("appearance")}
-              className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                activeView === "appearance"
-                  ? "bg-[#ff5733] text-white shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
-                  : "text-neutral-400 hover:text-white"
-              }`}
-              title="Appearance & Theme Builder"
-            >
-              <Palette className="w-3.5 h-3.5 shrink-0" />
-              <span className="whitespace-nowrap">Appearance</span>
-            </button>
-          </nav>
+          <SegmentedControl
+            as="nav"
+            options={[
+              {
+                id: "todo",
+                label: "To do",
+                icon: <CheckSquare className="w-3.5 h-3.5 shrink-0" />,
+                title: "To do: Task List & Focus Timer",
+              },
+              {
+                id: "history",
+                label: "History",
+                icon: <Calendar className="w-3.5 h-3.5 shrink-0" />,
+                title: "History: Daily Task Stacks & Archive",
+              },
+            ]}
+            value={activeView}
+            onChange={(val) => setActiveView(val as "todo" | "history")}
+          />
         </div>
 
         {/* Center: Search pill (visible on wide screens, collapses gracefully to prevent squeezing buttons) */}
@@ -575,11 +588,10 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           <button
             type="button"
             onClick={handleToggleWidget}
-            className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all shadow-md cursor-pointer ${
-              isWidgetOpen
+            className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all shadow-md cursor-pointer ${isWidgetOpen
                 ? "bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.12]"
                 : "liquid-coral-btn"
-            }`}
+              }`}
             title={isWidgetOpen ? "Close floating desktop widget" : "Open floating desktop widget"}
           >
             {isWidgetOpen ? (
@@ -593,6 +605,19 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                 <span className="whitespace-nowrap">Open Widget</span>
               </>
             )}
+          </button>
+
+          {/* Settings Gear Icon Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setSettingsDefaultTab("daily");
+              setIsSettingsModalOpen(true);
+            }}
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/[0.18] flex items-center justify-center text-neutral-300 hover:text-white transition-all cursor-pointer shadow-sm shrink-0"
+            title="Settings (Daily To-Do, Appearance, Updates)"
+          >
+            <Settings className="w-3.5 h-3.5" />
           </button>
 
           {/* Native Windows Controls */}
@@ -633,13 +658,17 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
 
       {/* Main Workspace Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6">
-        {activeView === "appearance" ? (
-          <AppearanceSettings 
-            theme={theme} 
-            onUpdateTheme={onUpdateTheme}
-            onCheckUpdates={handleManualCheckUpdates}
-            isCheckingUpdate={isCheckingUpdate}
-            updateStatusMessage={updateStatusMessage}
+        {activeView === "history" ? (
+          <HistoryView
+            history={state.history || []}
+            retentionDays={state.historyRetentionDays || 7}
+            accentColor={accentColor}
+            onRestoreTodos={onRestoreTodos}
+            onOpenSettings={() => {
+              setSettingsDefaultTab("daily");
+              setIsSettingsModalOpen(true);
+            }}
+            onManualArchive={onRolloverDailyTodos}
           />
         ) : (
           <div className="flex flex-col gap-6">
@@ -700,11 +729,10 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                   <span className="text-xl font-bold text-white tracking-tight uppercase">
                     {timer.timerState.mode}
                   </span>
-                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                    timer.timerState.isRunning 
-                      ? "bg-[#ff5733]/15 text-[#ff5733] border border-[#ff5733]/30" 
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${timer.timerState.isRunning
+                      ? "bg-[#ff5733]/15 text-[#ff5733] border border-[#ff5733]/30"
                       : "bg-white/[0.06] text-neutral-400 border border-white/[0.08]"
-                  }`}>
+                    }`}>
                     {timer.timerState.isRunning ? "RUNNING" : "STANDBY"}
                   </span>
                 </div>
@@ -796,33 +824,30 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                     <button
                       type="button"
                       onClick={() => setFilter("all")}
-                      className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                        filter === "all"
+                      className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${filter === "all"
                           ? "bg-[#ff5733] text-white shadow-sm shadow-[#ff5733]/30 border border-[#ff5733]"
                           : "liquid-glass-pill"
-                      }`}
+                        }`}
                     >
                       All ({totalCount})
                     </button>
                     <button
                       type="button"
                       onClick={() => setFilter("active")}
-                      className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                        filter === "active"
+                      className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${filter === "active"
                           ? "bg-[#ff5733] text-white shadow-sm shadow-[#ff5733]/30 border border-[#ff5733]"
                           : "liquid-glass-pill"
-                      }`}
+                        }`}
                     >
                       Active ({totalCount - completedCount})
                     </button>
                     <button
                       type="button"
                       onClick={() => setFilter("completed")}
-                      className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                        filter === "completed"
+                      className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${filter === "completed"
                           ? "bg-[#ff5733] text-white shadow-sm shadow-[#ff5733]/30 border border-[#ff5733]"
                           : "liquid-glass-pill"
-                      }`}
+                        }`}
                     >
                       Completed ({completedCount})
                     </button>
@@ -915,6 +940,22 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
         onClose={() => setIsUpdateModalOpen(false)}
         updateInfo={updateInfo}
         onDismissVersion={(v) => localStorage.setItem("dismissed_update_version", v)}
+      />
+
+      {/* Unified Liquid Glass Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        theme={theme}
+        onUpdateTheme={onUpdateTheme}
+        historyRetentionDays={state.historyRetentionDays || 7}
+        onUpdateRetentionDays={onUpdateRetentionDays}
+        onClearHistory={onClearHistory}
+        onManualArchive={onRolloverDailyTodos}
+        onCheckUpdates={handleManualCheckUpdates}
+        isCheckingUpdate={isCheckingUpdate}
+        updateStatusMessage={updateStatusMessage}
+        defaultTab={settingsDefaultTab}
       />
     </div>
   );

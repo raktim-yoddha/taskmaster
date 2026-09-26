@@ -135,7 +135,12 @@ export default function App() {
       if (todoIndex === -1) return prev;
       const target = prev.todos[todoIndex];
       const newCompleted = !target.completed;
-      const updatedItem = { ...target, completed: newCompleted };
+      const nowFormatted = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const updatedItem = {
+        ...target,
+        completed: newCompleted,
+        completedAt: newCompleted ? nowFormatted : null,
+      };
 
       if (prev.theme.completionOrder === "queue") {
         const remaining = prev.todos.filter((t) => t.id !== id);
@@ -254,6 +259,44 @@ export default function App() {
     }
   }, []);
 
+  const handleUpdateRetentionDays = useCallback(async (days: number) => {
+    setState((prev) => ({ ...prev, historyRetentionDays: days }));
+    try {
+      const updated = await invoke<OverlayState>("update_history_retention", { days });
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("update_history_retention error:", e);
+    }
+  }, []);
+
+  const handleClearHistory = useCallback(async () => {
+    setState((prev) => ({ ...prev, history: [] }));
+    try {
+      const updated = await invoke<OverlayState>("clear_history");
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("clear_history error:", e);
+    }
+  }, []);
+
+  const handleRestoreTodos = useCallback(async (todosToRestore: any[]) => {
+    try {
+      const updated = await invoke<OverlayState>("restore_history_todos", { todos: todosToRestore });
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("restore_history_todos error:", e);
+    }
+  }, []);
+
+  const handleRolloverDailyTodos = useCallback(async () => {
+    try {
+      const updated = await invoke<OverlayState>("rollover_daily_todos");
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("rollover_daily_todos error:", e);
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-slate-950 text-slate-400 text-xs font-mono">
@@ -290,6 +333,10 @@ export default function App() {
       onReorderTodos={handleReorderTodos}
       onSetTitle={handleSetTitle}
       onUpdateTheme={handleUpdateTheme}
+      onUpdateRetentionDays={handleUpdateRetentionDays}
+      onClearHistory={handleClearHistory}
+      onRestoreTodos={handleRestoreTodos}
+      onRolloverDailyTodos={handleRolloverDailyTodos}
     />
   );
 }

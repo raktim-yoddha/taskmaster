@@ -10,8 +10,9 @@ use tauri::{
     AppHandle, Emitter, Manager, State, WindowEvent,
 };
 use uuid::Uuid;
+use chrono::{Days, Duration, Local, NaiveDate};
 
-use models::{OverlayState, OverlayTheme, TodoItem};
+use models::{DailyHistoryRecord, OverlayState, OverlayTheme, TodoItem};
 use store::{load_state, save_state};
 
 #[cfg(target_os = "windows")]
@@ -134,6 +135,54 @@ pub struct AppContext {
     pub app: Arc<RwLock<Option<AppHandle>>>,
 }
 
+pub fn prune_history(state: &mut OverlayState) {
+    let today = Local::now().date_naive();
+    let retention_days = if state.history_retention_days == 0 { 7 } else { state.history_retention_days };
+    let cutoff = today - Days::new(retention_days as u64);
+    state.history.retain(|rec| {
+        if let Ok(rec_date) = NaiveDate::parse_from_str(&rec.date, "%Y-%m-%d") {
+            rec_date >= cutoff
+        } else {
+            true
+        }
+    });
+}
+
+pub fn perform_daily_rollover(state: &mut OverlayState) -> bool {
+    let today = Local::now().format("%Y-%m-%d").to_string();
+    if state.last_active_date.is_empty() {
+        state.last_active_date = today;
+        return false;
+    }
+    if state.last_active_date != today {
+        // Strict check: if there were tasks, snapshot all tasks present at 12 am into history
+        if !state.todos.is_empty() {
+            let completed_count = state.todos.iter().filter(|t| t.completed).count();
+            let total_count = state.todos.len();
+            let formatted_date = match NaiveDate::parse_from_str(&state.last_active_date, "%Y-%m-%d") {
+                Ok(d) => d.format("%A, %b %e, %Y").to_string(),
+                Err(_) => state.last_active_date.clone(),
+            };
+            let record = DailyHistoryRecord {
+                id: Uuid::new_v4().to_string(),
+                date: state.last_active_date.clone(),
+                formatted_date,
+                title: state.title.clone(),
+                todos: state.todos.clone(),
+                completed_count,
+                total_count,
+                archived_at: Local::now().to_rfc3339(),
+            };
+            state.history.insert(0, record);
+            state.todos.clear();
+        }
+        state.last_active_date = today;
+        prune_history(state);
+        return true;
+    }
+    false
+}
+
 #[tauri::command]
 async fn get_state(ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
     let current = ctx.state.read().await;
@@ -164,6 +213,7 @@ async fn add_todo(text: String, ctx: State<'_, AppContext>) -> Result<OverlaySta
             id: Uuid::new_v4().to_string(),
             text,
             completed: false,
+            completed_at: None,
         };
         current.todos.push(new_item);
         save_state(&current)?;
@@ -181,6 +231,11 @@ async fn toggle_todo(id: String, ctx: State<'_, AppContext>) -> Result<OverlaySt
         if let Some(pos) = current.todos.iter().position(|t| t.id == id) {
             let mut item = current.todos.remove(pos);
             item.completed = !item.completed;
+            if item.completed {
+                item.completed_at = Some(Local::now().format("%I:%M %p").to_string());
+            } else {
+                item.completed_at = None;
+            }
 
             if current.theme.completion_order == "queue" {
                 if item.completed {
@@ -297,6 +352,86 @@ async fn set_title(title: String, ctx: State<'_, AppContext>) -> Result<OverlayS
     let updated = {
         let mut current = ctx.state.write().await;
         current.title = title.trim().to_string();
+        save_state(&current)?;
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
+#[tauri::command]
+async fn update_history_retention(days: u32, ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
+    let updated = {
+        let mut current = ctx.state.write().await;
+        current.history_retention_days = days;
+        prune_history(&mut current);
+        save_state(&current)?;
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
+#[tauri::command]
+async fn clear_history(ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
+    let updated = {
+        let mut current = ctx.state.write().await;
+        current.history.clear();
+        save_state(&current)?;
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
+#[tauri::command]
+async fn restore_history_todos(todos: Vec<TodoItem>, ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
+    let updated = {
+        let mut current = ctx.state.write().await;
+        for t in todos {
+            current.todos.push(TodoItem {
+                id: Uuid::new_v4().to_string(),
+                text: t.text,
+                completed: false,
+                completed_at: None,
+            });
+        }
+        save_state(&current)?;
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
+#[tauri::command]
+async fn rollover_daily_todos(ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
+    let updated = {
+        let mut current = ctx.state.write().await;
+        if !current.todos.is_empty() {
+            let now = Local::now();
+            let date = now.format("%Y-%m-%d").to_string();
+            let formatted_date = now.format("%A, %b %e, %Y").to_string();
+            let completed_count = current.todos.iter().filter(|t| t.completed).count();
+            let total_count = current.todos.len();
+            let record = DailyHistoryRecord {
+                id: Uuid::new_v4().to_string(),
+                date,
+                formatted_date,
+                title: current.title.clone(),
+                todos: current.todos.clone(),
+                completed_count,
+                total_count,
+                archived_at: now.to_rfc3339(),
+            };
+            current.history.insert(0, record);
+            current.todos.clear();
+        }
+        current.last_active_date = Local::now().format("%Y-%m-%d").to_string();
+        prune_history(&mut current);
         save_state(&current)?;
         current.clone()
     };
@@ -446,12 +581,15 @@ async fn download_and_apply_update(
 pub fn run() {
     updater::cleanup_old_updates();
 
-    let initial_state = load_state();
+    let mut initial_state = load_state();
+    if perform_daily_rollover(&mut initial_state) {
+        let _ = save_state(&initial_state);
+    }
     let shared_state = Arc::new(RwLock::new(initial_state));
     let app_handle_holder = Arc::new(RwLock::new(None));
 
     let app_context = AppContext {
-        state: shared_state,
+        state: shared_state.clone(),
         app: app_handle_holder.clone(),
     };
 
@@ -468,6 +606,10 @@ pub fn run() {
             reorder_todos,
             update_theme,
             set_title,
+            update_history_retention,
+            clear_history,
+            restore_history_todos,
+            rollover_daily_todos,
             minimize_main_window,
             toggle_maximize_main_window,
             close_main_window,
@@ -482,8 +624,40 @@ pub fn run() {
         .setup(move |app| {
             let handle = app.handle().clone();
             let app_holder = app_handle_holder.clone();
+            let loop_state = shared_state.clone();
+            let loop_holder = app_handle_holder.clone();
+
             tauri::async_runtime::spawn(async move {
                 *app_holder.write().await = Some(handle);
+            });
+
+            // Background task: precise 12:00 AM midnight rollover loop
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    let now = Local::now();
+                    let next_midnight = match (now.date_naive() + Days::new(1)).and_hms_opt(0, 0, 1) {
+                        Some(naive) => naive.and_local_timezone(Local).single().unwrap_or(now + Duration::hours(24)),
+                        None => now + Duration::hours(24),
+                    };
+                    let wait_millis = (next_midnight - now).num_milliseconds().max(1000) as u64;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(wait_millis)).await;
+
+                    let (should_broadcast, updated_state) = {
+                        let mut state = loop_state.write().await;
+                        if perform_daily_rollover(&mut state) {
+                            let _ = save_state(&state);
+                            (true, Some(state.clone()))
+                        } else {
+                            (false, None)
+                        }
+                    };
+
+                    if should_broadcast {
+                        if let (Some(app), Some(state)) = (&*loop_holder.read().await, updated_state) {
+                            let _ = app.emit("state-changed", state);
+                        }
+                    }
+                }
             });
 
             let show_app_item = MenuItem::with_id(app, "show_app", "Open Taskmaster Everywhere", true, None::<&str>)?;

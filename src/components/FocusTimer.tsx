@@ -1,16 +1,17 @@
 import React, { useState } from "react";
 import { TimerState, PomodoroPhase, TodoItem, PomodoroSettings } from "../types";
 import { ThemedSelect } from "./ThemedSelect";
-import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  SkipForward, 
-  Plus, 
-  Volume2, 
-  VolumeX, 
-  Settings2, 
-  CheckCircle2, 
+import { SegmentedControl } from "./SegmentedControl";
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  SkipForward,
+  Plus,
+  Volume2,
+  VolumeX,
+  Settings2,
+  CheckCircle2,
   Target,
   Flag,
   X,
@@ -96,44 +97,28 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
       {/* Top Header: Mode Switcher & Quick Controls */}
       <div className="flex items-center justify-between pb-4 border-b border-white/[0.06] z-10">
         {/* Segmented Mode Control */}
-        <div className="flex items-center bg-[#15171b]/90 p-1 rounded-full border border-white/[0.08] shadow-inner">
-          <button
-            type="button"
-            onClick={() => onSetMode("pomodoro")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              timer.mode === "pomodoro"
-                ? "bg-[#ff5733] text-white shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5" />
-            <span>Pomodoro</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onSetMode("countdown")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              timer.mode === "countdown"
-                ? "bg-[#ff5733] text-white shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            <Hourglass className="w-3.5 h-3.5" />
-            <span>Timer</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onSetMode("stopwatch")}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              timer.mode === "stopwatch"
-                ? "bg-[#ff5733] text-white shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Stopwatch</span>
-          </button>
-        </div>
+        <SegmentedControl
+          options={[
+            {
+              id: "pomodoro",
+              label: "Pomodoro",
+              icon: <Flame className="w-3.5 h-3.5" />,
+            },
+            {
+              id: "countdown",
+              label: "Timer",
+              icon: <Hourglass className="w-3.5 h-3.5" />,
+            },
+            {
+              id: "stopwatch",
+              label: "Stopwatch",
+              icon: <Clock className="w-3.5 h-3.5" />,
+            },
+          ]}
+          value={timer.mode}
+          onChange={(val) => onSetMode(val as "pomodoro" | "countdown" | "stopwatch")}
+          accentColor={accentColor}
+        />
 
         {/* Sound toggle & Settings button */}
         <div className="flex items-center gap-1.5">
@@ -153,11 +138,10 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
           <button
             type="button"
             onClick={() => setShowSettings(!showSettings)}
-            className={`p-2 rounded-xl border transition-all cursor-pointer ${
-              showSettings
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${showSettings
                 ? "bg-[#ff5733] text-white border-[#ff5733] shadow-md shadow-[#ff5733]/30"
                 : "bg-white/[0.04] border-white/[0.06] text-neutral-400 hover:text-white hover:bg-white/[0.08]"
-            }`}
+              }`}
             title="Timer durations & settings"
           >
             <Settings2 className="w-4 h-4" />
@@ -242,40 +226,19 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
 
       {/* Pomodoro Phase Switcher (Segmented Liquid Glass Pills) */}
       {timer.mode === "pomodoro" && (
-        <div className="flex items-center justify-center gap-1.5 mt-4 p-1 bg-[#14161a]/80 rounded-full border border-white/[0.06] z-10">
-          <button
-            type="button"
-            onClick={() => onSetPhase("focus")}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-              timer.pomodoroPhase === "focus"
-                ? "bg-[#ff5733] text-white font-semibold shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            Focus
-          </button>
-          <button
-            type="button"
-            onClick={() => onSetPhase("shortBreak")}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-              timer.pomodoroPhase === "shortBreak"
-                ? "bg-[#ff5733] text-white font-semibold shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            Short Break
-          </button>
-          <button
-            type="button"
-            onClick={() => onSetPhase("longBreak")}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-              timer.pomodoroPhase === "longBreak"
-                ? "bg-[#ff5733] text-white font-semibold shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            Long Break
-          </button>
+        <div className="flex items-center justify-center mt-4 z-10">
+          <SegmentedControl
+            options={[
+              { id: "focus", label: "Focus" },
+              { id: "shortBreak", label: "Short Break" },
+              { id: "longBreak", label: "Long Break" },
+            ]}
+            value={timer.pomodoroPhase}
+            onChange={(val) => onSetPhase(val as PomodoroPhase)}
+            accentColor={accentColor}
+            className="bg-[#14161a]/80 border-white/[0.06]"
+            buttonClassName="px-4 font-medium"
+          />
         </div>
       )}
 
@@ -377,8 +340,8 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                   ? timer.pomodoroPhase === "focus"
                     ? "Focus Session"
                     : timer.pomodoroPhase === "shortBreak"
-                    ? "Short Break"
-                    : "Long Break"
+                      ? "Short Break"
+                      : "Long Break"
                   : "Countdown"}
               </span>
 
@@ -393,11 +356,10 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                   {Array.from({ length: timer.settings.longBreakInterval }).map((_, idx) => (
                     <div
                       key={idx}
-                      className={`w-2.5 h-2.5 rounded-full transition-all ${
-                        idx + 1 <= timer.currentRound
+                      className={`w-2.5 h-2.5 rounded-full transition-all ${idx + 1 <= timer.currentRound
                           ? "bg-[#ff5733] shadow-md shadow-[#ff5733]/60 scale-110"
                           : "bg-white/10 border border-white/10"
-                      }`}
+                        }`}
                       title={`Round ${idx + 1} of ${timer.settings.longBreakInterval}`}
                     />
                   ))}
@@ -425,11 +387,10 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                 key={m}
                 type="button"
                 onClick={() => onSetCountdownDuration(m * 60)}
-                className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition-all cursor-pointer ${
-                  timer.targetDuration === m * 60
+                className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition-all cursor-pointer ${timer.targetDuration === m * 60
                     ? "bg-[#ff5733] text-white font-bold shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
                     : "liquid-glass-pill"
-                }`}
+                  }`}
               >
                 {m}m
               </button>

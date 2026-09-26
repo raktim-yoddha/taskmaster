@@ -16,13 +16,14 @@
     --font-serif: Georgia, 'Times New Roman', serif;
   }
 
-  html, body {
+  html,
+  body {
     margin: 0;
     padding: 0;
     font-family: var(--font-inter);
     color: #f4f4f5;
     background-color: #17191d;
-    background-image: 
+    background-image:
       radial-gradient(ellipse 90% 60% at 50% -10%, rgba(255, 255, 255, 0.06) 0%, transparent 70%),
       radial-gradient(ellipse 80% 50% at 50% 110%, rgba(255, 87, 51, 0.04) 0%, transparent 60%),
       radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.02) 0%, transparent 50%),
@@ -32,7 +33,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  html.is-widget, body.is-widget, html.is-widget #root, body.is-widget #root {
+  html.is-widget,
+  body.is-widget,
+  html.is-widget #root,
+  body.is-widget #root {
     background-color: transparent !important;
     background-image: none !important;
     overflow: hidden !important;
@@ -46,7 +50,7 @@
   backdrop-filter: blur(40px) saturate(140%);
   -webkit-backdrop-filter: blur(40px) saturate(140%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.15),
     0 16px 36px -10px rgba(0, 0, 0, 0.55);
 }
@@ -56,7 +60,7 @@
   backdrop-filter: blur(32px) saturate(130%);
   -webkit-backdrop-filter: blur(32px) saturate(130%);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 
+  box-shadow:
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.16),
     inset 0 0 0 1px rgba(255, 255, 255, 0.02),
     0 20px 45px -12px rgba(0, 0, 0, 0.65);
@@ -83,10 +87,11 @@
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .liquid-glass-row:hover {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.085) 0%, rgba(255, 255, 255, 0.03) 100%);
   border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
     0 10px 24px -6px rgba(0, 0, 0, 0.45);
 }
@@ -96,10 +101,11 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
 }
+
 .liquid-glass-input:focus {
   border-color: rgba(255, 87, 51, 0.65);
   outline: none;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.35),
     0 0 0 3px rgba(255, 87, 51, 0.2);
 }
@@ -108,17 +114,19 @@
   background-color: #ff5733;
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
     0 4px 16px -2px rgba(255, 87, 51, 0.45);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .liquid-coral-btn:hover {
   background-color: #ff6847;
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
     0 6px 22px -2px rgba(255, 87, 51, 0.55);
 }
+
 .liquid-coral-btn:active {
   transform: scale(0.97);
 }
@@ -129,6 +137,7 @@
   color: #a1a1aa;
   transition: all 0.2s ease;
 }
+
 .liquid-glass-pill:hover {
   background: rgba(255, 255, 255, 0.09);
   border-color: rgba(255, 255, 255, 0.12);
@@ -140,13 +149,16 @@
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
@@ -155,12 +167,27 @@
 [data-tauri-drag-region] {
   -webkit-app-region: drag;
 }
+
 .widget-drag-handle {
   cursor: grab;
 }
+
 .widget-drag-handle:active {
   cursor: grabbing;
 }
-button, input, textarea, select, a, [data-no-drag] {
+
+button,
+input,
+textarea,
+select,
+a,
+[data-no-drag] {
   -webkit-app-region: no-drag;
+}
+
+button,
+button:focus,
+button:focus-visible {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }

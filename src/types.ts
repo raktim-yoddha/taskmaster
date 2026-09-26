@@ -2,6 +2,18 @@ export interface TodoItem {
   id: string;
   text: string;
   completed: boolean;
+  completedAt?: string | null;
+}
+
+export interface DailyHistoryRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  formattedDate: string; // "Saturday, Sep 26, 2026"
+  title: string;
+  todos: TodoItem[];
+  completedCount: number;
+  totalCount: number;
+  archivedAt: string;
 }
 
 export interface OverlayTheme {
@@ -27,6 +39,9 @@ export interface OverlayState {
   title: string;
   todos: TodoItem[];
   theme: OverlayTheme;
+  historyRetentionDays?: number;
+  history?: DailyHistoryRecord[];
+  lastActiveDate?: string;
 }
 
 export type TimerMode = "pomodoro" | "countdown" | "stopwatch";

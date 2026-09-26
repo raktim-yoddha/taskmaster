@@ -126,11 +126,10 @@ export const ThemedSelect: React.FC<ThemedSelectProps> = ({
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => handleSelect(option.value)}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs rounded-lg text-left transition-all duration-150 cursor-pointer ${
-                    isSelected
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs rounded-lg text-left transition-all duration-150 cursor-pointer ${isSelected
                       ? "font-medium"
                       : "text-neutral-300 hover:text-white hover:bg-white/[0.07]"
-                  }`}
+                    }`}
                   style={{
                     backgroundColor: isSelected ? `${accentColor}1c` : undefined,
                     color: isSelected ? accentColor : undefined,

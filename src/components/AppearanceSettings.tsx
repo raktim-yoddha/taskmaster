@@ -108,11 +108,10 @@ export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
                 key={preset.name}
                 type="button"
                 onClick={() => applyPreset(preset)}
-                className={`p-3.5 rounded-2xl border flex flex-col items-center gap-2.5 transition-all cursor-pointer ${
-                  isSelected
+                className={`p-3.5 rounded-2xl border flex flex-col items-center gap-2.5 transition-all cursor-pointer ${isSelected
                     ? "border-[#ff5733] bg-[#ff5733]/15 shadow-lg shadow-[#ff5733]/20"
                     : "border-white/[0.06] bg-[#14161a]/60 hover:border-white/20 hover:bg-white/[0.04]"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-1.5">
                   <div
