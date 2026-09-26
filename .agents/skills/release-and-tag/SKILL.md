@@ -29,7 +29,7 @@ Run:
 ```powershell
 pnpm run release
 ```
-This script runs `npm run build` and `tauri build`, creating the portable, versioned NSIS setup (`Taskmaster-vX.Y.Z-Setup.exe`), and versioned MSI installer (`Taskmaster-vX.Y.Z-Setup.msi`) in the `releases/` directory.
+This script runs `npm run build` and `tauri build`, creating the versioned portable (`Taskmaster-vX.Y.Z-Portable.exe`), versioned NSIS setup (`Taskmaster-vX.Y.Z-Setup.exe`), and versioned MSI installer (`Taskmaster-vX.Y.Z-Setup.msi`) in the `releases/` directory.
 
 ### 4. Commit Code Changes
 Stage all modified source files (excluding `releases/`):
@@ -47,10 +47,10 @@ git push origin vX.Y.Z
 ```
 
 ### 6. Publish GitHub Release with Assets
-Use the GitHub CLI (`gh`) to upload the 3 binaries (with versioned setup EXE and MSI):
+Use the GitHub CLI (`gh`) to upload the 3 versioned binaries:
 ```powershell
 gh release create vX.Y.Z `
-  releases/Taskmaster-Portable.exe `
+  releases/Taskmaster-vX.Y.Z-Portable.exe `
   releases/Taskmaster-vX.Y.Z-Setup.exe `
   releases/Taskmaster-vX.Y.Z-Setup.msi `
   --title "Taskmaster vX.Y.Z" `

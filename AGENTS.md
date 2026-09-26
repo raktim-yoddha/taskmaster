@@ -49,10 +49,10 @@ Run:
 pnpm run release
 ```
 Ensure the versioned release binaries are produced in `releases/`:
-- `releases/Taskmaster-Portable.exe`
+- `releases/Taskmaster-vX.Y.Z-Portable.exe`
 - `releases/Taskmaster-vX.Y.Z-Setup.exe`
 - `releases/Taskmaster-vX.Y.Z-Setup.msi`
-(along with unversioned aliases `Taskmaster-Setup.exe` and `Taskmaster-Setup.msi` for local convenience).
+(along with unversioned aliases `Taskmaster-Portable.exe`, `Taskmaster-Setup.exe`, and `Taskmaster-Setup.msi` for local convenience).
 
 ### Step 4: Git Commit & Push Changes
 Stage and commit all source code and configuration changes:
@@ -70,10 +70,10 @@ git push origin vX.Y.Z
 ```
 
 ### Step 6: Publish GitHub Release with Attached Assets
-Publish the release using the GitHub CLI (`gh`) and attach all 3 binaries (with versioned setup EXE and MSI):
+Publish the release using the GitHub CLI (`gh`) and attach all 3 versioned binaries:
 ```powershell
 gh release create vX.Y.Z `
-  releases/Taskmaster-Portable.exe `
+  releases/Taskmaster-vX.Y.Z-Portable.exe `
   releases/Taskmaster-vX.Y.Z-Setup.exe `
   releases/Taskmaster-vX.Y.Z-Setup.msi `
   --title "Taskmaster vX.Y.Z" `
@@ -81,19 +81,21 @@ gh release create vX.Y.Z `
 ```
 
 ### Step 7: Verify Update Pop-Up Integrity
-Verify that GitHub API `https://api.github.com/repos/raktim-yoddha/todo-app/releases/latest` reflects tag `vX.Y.Z` and contains the 3 uploaded binaries (`Taskmaster-Portable.exe`, `Taskmaster-vX.Y.Z-Setup.exe`, and `Taskmaster-vX.Y.Z-Setup.msi`).
+Verify that GitHub API `https://api.github.com/repos/raktim-yoddha/todo-app/releases/latest` reflects tag `vX.Y.Z` and contains the 3 uploaded binaries (`Taskmaster-vX.Y.Z-Portable.exe`, `Taskmaster-vX.Y.Z-Setup.exe`, and `Taskmaster-vX.Y.Z-Setup.msi`).
 
 > **Why this is critical:**
 > Older app versions query GitHub API's `releases/latest`. When a GitHub Release is published with attached assets, older versions running any earlier version will detect `isNewerVersion()` and immediately trigger the "vX.Y.Z Available!" in-app modal with direct one-click download buttons for the installer and portable `.exe`.
 
 ---
 
-## 4. Versioned Installer Binary Naming Rule
+## 4. Versioned Release Binary Naming Rule
 
-Whenever a new version `vX.Y.Z` is released to GitHub tags:
-- The setup installer (`.exe`) attached to the release **MUST** contain the version number: `Taskmaster-vX.Y.Z-Setup.exe`
-- The MSI installer (`.msi`) attached to the release **MUST** contain the version number: `Taskmaster-vX.Y.Z-Setup.msi`
-- The portable executable retains the clean portable name: `Taskmaster-Portable.exe`
+Whenever a new version `vX.Y.Z` is released to GitHub tags, **all binaries** attached to the release **MUST** contain the version number:
+- `Taskmaster-vX.Y.Z-Portable.exe` (Portable executable)
+- `Taskmaster-vX.Y.Z-Setup.exe` (NSIS setup installer)
+- `Taskmaster-vX.Y.Z-Setup.msi` (MSI setup installer)
+
+(Note: `build-release.mjs` also outputs unversioned aliases `Taskmaster-Portable.exe`, `Taskmaster-Setup.exe`, and `Taskmaster-Setup.msi` locally for convenience).
 
 This ensures users downloading release binaries know the exact version they possess, while maintaining 100% compatibility with the in-app auto-updater (`UpdateNotificationModal.tsx` regex matching).
 
