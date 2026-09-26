@@ -3,14 +3,14 @@ import { OverlayTheme } from "../types";
 import {
   X,
   Palette,
-  Sparkles,
+  ArrowUpCircle,
   Sliders,
   Calendar,
   Trash2,
   RefreshCw,
   Archive,
-  Info,
-  CheckCircle2
+  CheckCircle2,
+  Clock
 } from "lucide-react";
 import { ThemedSelect, ThemedSelectOption } from "./ThemedSelect";
 import { CURRENT_VERSION } from "../utils/updater";
@@ -22,6 +22,8 @@ interface SettingsModalProps {
   onUpdateTheme: (newTheme: OverlayTheme) => Promise<void>;
   historyRetentionDays: number;
   onUpdateRetentionDays: (days: number) => Promise<void>;
+  dailyResetTime?: string;
+  onUpdateDailyResetTime?: (time: string) => Promise<void>;
   onClearHistory: () => Promise<void>;
   onManualArchive?: () => Promise<void>;
   onCheckUpdates: () => Promise<void>;
@@ -76,6 +78,34 @@ const RETENTION_OPTIONS: ThemedSelectOption[] = [
   { value: "30", label: "1 Month (30 Days)", description: "Keep past 30 days of daily to-dos" },
 ];
 
+const RESET_TIME_OPTIONS: ThemedSelectOption[] = [
+  { value: "00:00", label: "12:00 AM (Midnight - Default)", description: "Standard midnight reset (default)" },
+  { value: "01:00", label: "01:00 AM", description: "1 hour past midnight" },
+  { value: "02:00", label: "02:00 AM", description: "2 hours past midnight" },
+  { value: "03:00", label: "03:00 AM (Night Owl)", description: "For late workers and night owls" },
+  { value: "04:00", label: "04:00 AM (Late Night)", description: "Reset before early morning start" },
+  { value: "05:00", label: "05:00 AM (Early Riser)", description: "Fresh morning daily schedule" },
+  { value: "06:00", label: "06:00 AM (Dawn Start)", description: "Standard morning work day start" },
+];
+
+const formatDisplayTime = (timeStr: string = "00:00") => {
+  const [hStr, mStr] = timeStr.split(":");
+  const h = parseInt(hStr || "0", 10);
+  const m = parseInt(mStr || "0", 10);
+  const period = h >= 12 ? "PM" : "AM";
+  const displayH = h % 12 === 0 ? 12 : h % 12;
+  const padH = displayH < 10 ? `0${displayH}` : `${displayH}`;
+  const padM = m < 10 ? `0${m}` : `${m}`;
+  if (h === 0 && m === 0) {
+    return "12:00 AM (Default)";
+  }
+  return `${padH}:${padM} ${period}`;
+};
+
+const isPreset = (timeStr: string = "00:00") => {
+  return RESET_TIME_OPTIONS.some((opt) => opt.value === timeStr);
+};
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
@@ -83,6 +113,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateTheme,
   historyRetentionDays = 7,
   onUpdateRetentionDays,
+  dailyResetTime = "00:00",
+  onUpdateDailyResetTime,
   onClearHistory,
   onManualArchive,
   onCheckUpdates,
@@ -132,7 +164,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-[26px] bg-[#14161a] border border-white/[0.12] shadow-2xl overflow-hidden text-neutral-100 selection:bg-[#ff5733]/30"
+        className="w-full max-w-[760px] max-h-[92vh] flex flex-col rounded-[26px] bg-[#14161a] border border-white/[0.12] shadow-2xl overflow-hidden text-neutral-100 selection:bg-[#ff5733]/30"
         style={{
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)",
         }}
@@ -195,29 +227,70 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <ArrowUpCircle className="w-3.5 h-3.5" />
             <span>Software Update</span>
           </button>
         </div>
 
-        {/* Modal Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Modal Scrollable Content (Scrollbar hidden, spacious padding) */}
+        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden p-6 space-y-5">
           {/* TAB 1: DAILY TO-DO & HISTORY */}
           {activeTab === "daily" && (
-            <div className="space-y-5 animate-in fade-in duration-200">
-              {/* How it works info card */}
-              <div className="liquid-glass-card rounded-[20px] p-4 border border-white/[0.08] bg-white/[0.02] flex items-start gap-3.5">
-                <div className="w-8 h-8 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0 mt-0.5">
-                  <Info className="w-4 h-4" />
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {/* Daily Reset Time Selector */}
+              <div className="liquid-glass-card rounded-[22px] p-5 border border-white/[0.08] space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-bold text-white tracking-tight">Daily Rollover & Reset Time</label>
+                    <p className="text-xs text-neutral-400 leading-relaxed max-w-md">
+                      Choose what time of day active to-dos automatically archive into the History stack and empty for the fresh day.
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex items-center">
+                    <span className="text-xs font-mono font-bold text-[#ff5733] bg-[#ff5733]/10 px-3 py-1.5 rounded-full border border-[#ff5733]/20 whitespace-nowrap shadow-sm">
+                      {formatDisplayTime(dailyResetTime)}
+                    </span>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-white tracking-tight">12:00 AM Midnight Rollover & Time Tracking</h4>
-                  <p className="text-xs text-neutral-300 leading-relaxed">
-                    At <strong>12:00 AM (midnight)</strong>, your active to-do list automatically archives all completed and uncompleted tasks into the <strong>History stack</strong> and empties the list for a clean day.
-                  </p>
-                  <p className="text-[11px] text-neutral-400 pt-0.5">
-                    Completed tasks record their exact check timestamp inside the app and history (remaining hidden from the desktop widget for a clean look).
-                  </p>
+
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <span className="block text-[11px] font-medium text-neutral-400 mb-1.5 uppercase tracking-wider">Preset Time</span>
+                    <ThemedSelect
+                      value={isPreset(dailyResetTime) ? dailyResetTime : "custom"}
+                      onChange={(val) => {
+                        if (val !== "custom" && onUpdateDailyResetTime) {
+                          onUpdateDailyResetTime(val);
+                        }
+                      }}
+                      options={[
+                        ...RESET_TIME_OPTIONS,
+                        { value: "custom", label: "Custom Time...", description: "Pick any exact hour and minute" },
+                      ]}
+                      accentColor={theme.accentColor || "#ff5733"}
+                    />
+                  </div>
+
+                  {/* Custom Time Picker */}
+                  <div className="flex items-center justify-between gap-4 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+                    <div className="flex items-center gap-2.5">
+                      <Clock className="w-4 h-4 text-neutral-400 shrink-0" />
+                      <div>
+                        <span className="text-xs font-medium text-neutral-200 block">Set Custom Rollover Time</span>
+                        <span className="text-[11px] text-neutral-500 block">Exact hour and minute of the reset</span>
+                      </div>
+                    </div>
+                    <input
+                      type="time"
+                      value={dailyResetTime}
+                      onChange={(e) => {
+                        if (e.target.value && onUpdateDailyResetTime) {
+                          onUpdateDailyResetTime(e.target.value);
+                        }
+                      }}
+                      className="bg-[#181a1f] text-white text-xs font-mono px-3.5 py-2 rounded-xl border border-white/[0.12] hover:border-white/[0.2] focus:border-[#ff5733] focus:outline-none cursor-pointer transition-colors shadow-inner"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -253,8 +326,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     >
                       {archivedSuccess ? (
                         <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">Archived to History!</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#ff8a65]" />
+                          <span className="text-[#ff8a65]">Archived to History!</span>
                         </>
                       ) : (
                         <>
@@ -283,169 +356,192 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* TAB 2: APPEARANCE & THEME */}
+          {/* TAB 2: APPEARANCE & THEME - Redesigned into Spacious, Beautiful Liquid-Glass Cards */}
           {activeTab === "appearance" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Presets */}
-              <div className="space-y-2.5">
-                <label className="block text-xs font-bold text-white uppercase tracking-wider">
-                  Color Presets
-                </label>
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {/* Card 1: Color Themes & Custom Colors */}
+              <div className="liquid-glass-card rounded-[22px] p-5 border border-white/[0.08] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white tracking-tight">Theme & Color Presets</h3>
+                    <p className="text-xs text-neutral-400">Select a curated palette or customize your theme colors</p>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-[#ff5733] bg-[#ff5733]/10 px-2.5 py-1 rounded-full border border-[#ff5733]/20">
+                    {PRESET_THEMES.find(p => p.accent === theme.accentColor && p.card === theme.cardColor)?.name || "Custom Palette"}
+                  </span>
+                </div>
+
+                {/* 6 Presets in 3 columns */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {PRESET_THEMES.map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => applyPreset(preset)}
-                      className="p-3 rounded-xl bg-[#1b1d22] hover:bg-[#23262c] border border-white/[0.08] hover:border-white/[0.16] transition-all text-left group cursor-pointer flex flex-col gap-2"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <div
-                          className="w-4 h-4 rounded-full border border-white/20 shrink-0"
-                          style={{ backgroundColor: preset.card }}
-                        />
-                        <div
-                          className="w-4 h-4 rounded-full shrink-0"
-                          style={{ backgroundColor: preset.accent }}
-                        />
-                      </div>
-                      <span className="text-xs font-semibold text-neutral-300 group-hover:text-white truncate">
-                        {preset.name}
-                      </span>
-                    </button>
-                  ))}
+                  {PRESET_THEMES.map((preset) => {
+                    const isSelected = theme.accentColor === preset.accent && theme.cardColor === preset.card;
+                    return (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => applyPreset(preset)}
+                        className={`p-2.5 rounded-xl border transition-all text-left cursor-pointer flex items-center gap-2.5 ${
+                          isSelected
+                            ? "bg-white/[0.08] border-[#ff5733] ring-1 ring-[#ff5733]/40 shadow-sm shadow-[#ff5733]/10"
+                            : "bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.06] hover:border-white/[0.12]"
+                        }`}
+                      >
+                        <div className="flex items-center -space-x-1 shrink-0">
+                          <div
+                            className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
+                            style={{ backgroundColor: preset.card }}
+                          />
+                          <div
+                            className="w-4 h-4 rounded-full border border-black/40 shadow-sm"
+                            style={{ backgroundColor: preset.accent }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-neutral-200 truncate">
+                          {preset.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Color Pickers */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-white/[0.06]">
+                  <div className="px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between">
+                    <span className="text-xs font-medium text-neutral-300">Card Color</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={theme.cardColor}
+                        onChange={(e) => updateThemeField("cardColor", e.target.value)}
+                        className="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                      />
+                      <span className="font-mono text-[11px] text-neutral-400">{theme.cardColor}</span>
+                    </div>
+                  </div>
+
+                  <div className="px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between">
+                    <span className="text-xs font-medium text-neutral-300">Accent Color</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={theme.accentColor}
+                        onChange={(e) => updateThemeField("accentColor", e.target.value)}
+                        className="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                      />
+                      <span className="font-mono text-[11px] text-neutral-400">{theme.accentColor}</span>
+                    </div>
+                  </div>
+
+                  <div className="px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between">
+                    <span className="text-xs font-medium text-neutral-300">Text Color</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={theme.textColor}
+                        onChange={(e) => updateThemeField("textColor", e.target.value)}
+                        className="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                      />
+                      <span className="font-mono text-[11px] text-neutral-400">{theme.textColor}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Custom Colors */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl bg-[#1b1d22] border border-white/[0.08] flex items-center justify-between">
-                  <span className="text-xs font-medium text-neutral-300">Card Color</span>
-                  <div className="flex items-center gap-2">
+              {/* Card 2: Glassmorphism, Typography & Display Settings */}
+              <div className="liquid-glass-card rounded-[22px] p-5 border border-white/[0.08] space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white tracking-tight">Glassmorphism & Display Settings</h3>
+                  <p className="text-xs text-neutral-400">Overlay transparency, typography, and widget preferences</p>
+                </div>
+
+                {/* Sliders: Opacity & Blur */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <div className="flex justify-between text-xs font-medium text-neutral-300 mb-2">
+                      <span>Card Opacity</span>
+                      <span className="text-xs font-mono font-bold text-[#ff5733] bg-[#ff5733]/10 px-2 py-0.5 rounded border border-[#ff5733]/20">{theme.opacity}%</span>
+                    </div>
                     <input
-                      type="color"
-                      value={theme.cardColor}
-                      onChange={(e) => updateThemeField("cardColor", e.target.value)}
-                      className="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                      type="range"
+                      min="30"
+                      max="100"
+                      value={theme.opacity}
+                      onChange={(e) => updateThemeField("opacity", Number(e.target.value))}
+                      className="w-full accent-[#ff5733] cursor-pointer"
                     />
-                    <span className="font-mono text-[11px] text-neutral-400">{theme.cardColor}</span>
                   </div>
-                </div>
 
-                <div className="p-3 rounded-xl bg-[#1b1d22] border border-white/[0.08] flex items-center justify-between">
-                  <span className="text-xs font-medium text-neutral-300">Accent Color</span>
-                  <div className="flex items-center gap-2">
+                  <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <div className="flex justify-between text-xs font-medium text-neutral-300 mb-2">
+                      <span>Backdrop Blur</span>
+                      <span className="text-xs font-mono font-bold text-[#ff5733] bg-[#ff5733]/10 px-2 py-0.5 rounded border border-[#ff5733]/20">{theme.blur}px</span>
+                    </div>
                     <input
-                      type="color"
-                      value={theme.accentColor}
-                      onChange={(e) => updateThemeField("accentColor", e.target.value)}
-                      className="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                      type="range"
+                      min="0"
+                      max="48"
+                      value={theme.blur}
+                      onChange={(e) => updateThemeField("blur", Number(e.target.value))}
+                      className="w-full accent-[#ff5733] cursor-pointer"
                     />
-                    <span className="font-mono text-[11px] text-neutral-400">{theme.accentColor}</span>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-[#1b1d22] border border-white/[0.08] flex items-center justify-between">
-                  <span className="text-xs font-medium text-neutral-300">Text Color</span>
-                  <div className="flex items-center gap-2">
+                {/* Typography & Layout selects */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Font Family</label>
+                    <ThemedSelect
+                      value={theme.font || "inter"}
+                      onChange={(val) => updateThemeField("font", val)}
+                      options={FONT_OPTIONS}
+                      accentColor={theme.accentColor || "#ff5733"}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Task Completion Order</label>
+                    <ThemedSelect
+                      value={theme.completionOrder || "maintain"}
+                      onChange={(val) => updateThemeField("completionOrder", val as "maintain" | "queue")}
+                      options={COMPLETION_ORDER_OPTIONS}
+                      accentColor={theme.accentColor || "#ff5733"}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Task Density</label>
+                    <ThemedSelect
+                      value={theme.density || "comfortable"}
+                      onChange={(val) => updateThemeField("density", val)}
+                      options={DENSITY_OPTIONS}
+                      accentColor={theme.accentColor || "#ff5733"}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Motion Animations</label>
+                    <ThemedSelect
+                      value={theme.animation || "subtle"}
+                      onChange={(val) => updateThemeField("animation", val)}
+                      options={ANIMATION_OPTIONS}
+                      accentColor={theme.accentColor || "#ff5733"}
+                    />
+                  </div>
+                </div>
+
+                {/* Show title header toggle */}
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
                     <input
-                      type="color"
-                      value={theme.textColor}
-                      onChange={(e) => updateThemeField("textColor", e.target.value)}
-                      className="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                      type="checkbox"
+                      checked={theme.showTitle ?? true}
+                      onChange={(e) => updateThemeField("showTitle", e.target.checked)}
+                      className="w-4 h-4 rounded cursor-pointer accent-[#ff5733]"
                     />
-                    <span className="font-mono text-[11px] text-neutral-400">{theme.textColor}</span>
-                  </div>
+                    <span className="text-xs text-neutral-200 font-medium">Show List Title Header in Widget</span>
+                  </label>
                 </div>
-              </div>
-
-              {/* Sliders: Opacity & Blur */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-[#1b1d22] border border-white/[0.08]">
-                  <div className="flex justify-between text-xs font-medium text-neutral-300 mb-2">
-                    <span>Card Opacity</span>
-                    <span className="text-neutral-400 font-mono">{theme.opacity}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="30"
-                    max="100"
-                    value={theme.opacity}
-                    onChange={(e) => updateThemeField("opacity", Number(e.target.value))}
-                    className="w-full accent-[#ff5733] cursor-pointer"
-                  />
-                </div>
-
-                <div className="p-4 rounded-xl bg-[#1b1d22] border border-white/[0.08]">
-                  <div className="flex justify-between text-xs font-medium text-neutral-300 mb-2">
-                    <span>Backdrop Blur</span>
-                    <span className="text-neutral-400 font-mono">{theme.blur}px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="48"
-                    value={theme.blur}
-                    onChange={(e) => updateThemeField("blur", Number(e.target.value))}
-                    className="w-full accent-[#ff5733] cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Typography & Layout */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Font Family</label>
-                  <ThemedSelect
-                    value={theme.font || "inter"}
-                    onChange={(val) => updateThemeField("font", val)}
-                    options={FONT_OPTIONS}
-                    accentColor={theme.accentColor || "#ff5733"}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Task Completion Order</label>
-                  <ThemedSelect
-                    value={theme.completionOrder || "maintain"}
-                    onChange={(val) => updateThemeField("completionOrder", val as "maintain" | "queue")}
-                    options={COMPLETION_ORDER_OPTIONS}
-                    accentColor={theme.accentColor || "#ff5733"}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Task Density</label>
-                  <ThemedSelect
-                    value={theme.density || "comfortable"}
-                    onChange={(val) => updateThemeField("density", val)}
-                    options={DENSITY_OPTIONS}
-                    accentColor={theme.accentColor || "#ff5733"}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5 font-medium">Motion Animations</label>
-                  <ThemedSelect
-                    value={theme.animation || "subtle"}
-                    onChange={(val) => updateThemeField("animation", val)}
-                    options={ANIMATION_OPTIONS}
-                    accentColor={theme.accentColor || "#ff5733"}
-                  />
-                </div>
-              </div>
-
-              {/* Show title header toggle */}
-              <div className="p-3.5 rounded-xl bg-[#1b1d22] border border-white/[0.08] flex items-center justify-between">
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={theme.showTitle ?? true}
-                    onChange={(e) => updateThemeField("showTitle", e.target.checked)}
-                    className="w-4 h-4 rounded cursor-pointer accent-[#ff5733]"
-                  />
-                  <span className="text-xs text-neutral-200 font-medium">Show List Title Header in Widget</span>
-                </label>
               </div>
             </div>
           )}
@@ -456,13 +552,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="liquid-glass-card rounded-[22px] p-6 border border-white/[0.08] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                 <div className="flex items-start sm:items-center gap-4">
                   <img
-                    src="/logo.png"
-                    alt="Taskmaster Everywhere"
+                    src="/logo2.png"
+                    alt="Taskmaster"
                     className="w-12 h-12 object-contain select-none shrink-0"
                   />
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <h3 className="text-base font-bold text-white tracking-tight">Taskmaster Everywhere</h3>
+                      <h3 className="text-base font-bold text-white tracking-tight">Taskmaster</h3>
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-[#ff5733]/15 text-[#ff5733] border border-[#ff5733]/30">
                         v{CURRENT_VERSION}
                       </span>
@@ -500,7 +596,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Auto-update information */}
               <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-neutral-400 leading-relaxed">
-                Taskmaster Everywhere automatically checks for updates on launch. When an update is detected, an update banner appears with one-click direct installer & portable download options.
+                Taskmaster automatically checks for updates on launch. When an update is detected, an update banner appears with one-click direct installer & portable download options.
               </div>
             </div>
           )}

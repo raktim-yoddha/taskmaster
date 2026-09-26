@@ -148,14 +148,53 @@ pub fn prune_history(state: &mut OverlayState) {
     });
 }
 
+pub fn parse_reset_hour_minute(time_str: &str) -> (u32, u32) {
+    let parts: Vec<&str> = time_str.split(':').collect();
+    if parts.len() >= 2 {
+        let hour = parts[0].trim().parse::<u32>().unwrap_or(0);
+        let minute = parts[1].trim().parse::<u32>().unwrap_or(0);
+        (hour.min(23), minute.min(59))
+    } else {
+        (0, 0)
+    }
+}
+
+pub fn get_logical_date(reset_time: &str) -> String {
+    let now = Local::now();
+    let (reset_hour, reset_minute) = parse_reset_hour_minute(reset_time);
+    let today = now.date_naive();
+    let reset_naive = today.and_hms_opt(reset_hour, reset_minute, 0).unwrap_or(today.and_hms_opt(0, 0, 0).unwrap());
+    if now.naive_local() < reset_naive {
+        (today - Days::new(1)).format("%Y-%m-%d").to_string()
+    } else {
+        today.format("%Y-%m-%d").to_string()
+    }
+}
+
+pub fn duration_until_next_reset(reset_time: &str) -> std::time::Duration {
+    let now = Local::now();
+    let (reset_hour, reset_minute) = parse_reset_hour_minute(reset_time);
+    let today_reset = now.date_naive().and_hms_opt(reset_hour, reset_minute, 1).unwrap_or(now.date_naive().and_hms_opt(0, 0, 1).unwrap());
+    let next_reset_naive = if now.naive_local() < today_reset {
+        today_reset
+    } else {
+        (now.date_naive() + Days::new(1)).and_hms_opt(reset_hour, reset_minute, 1).unwrap_or((now.date_naive() + Days::new(1)).and_hms_opt(0, 0, 1).unwrap())
+    };
+    
+    let next_reset_local = next_reset_naive.and_local_timezone(Local).single().unwrap_or(now + Duration::hours(24));
+    let millis = (next_reset_local - now).num_milliseconds().max(1000) as u64;
+    std::time::Duration::from_millis(millis)
+}
+
 pub fn perform_daily_rollover(state: &mut OverlayState) -> bool {
-    let today = Local::now().format("%Y-%m-%d").to_string();
+    let reset_time = if state.daily_reset_time.is_empty() { "00:00" } else { &state.daily_reset_time };
+    let current_logical_date = get_logical_date(reset_time);
     if state.last_active_date.is_empty() {
-        state.last_active_date = today;
+        state.last_active_date = current_logical_date;
         return false;
     }
-    if state.last_active_date != today {
-        // Strict check: if there were tasks, snapshot all tasks present at 12 am into history
+    if state.last_active_date != current_logical_date {
+        // Strict check: if there were tasks, snapshot all tasks present into history
         if !state.todos.is_empty() {
             let completed_count = state.todos.iter().filter(|t| t.completed).count();
             let total_count = state.todos.len();
@@ -176,7 +215,7 @@ pub fn perform_daily_rollover(state: &mut OverlayState) -> bool {
             state.history.insert(0, record);
             state.todos.clear();
         }
-        state.last_active_date = today;
+        state.last_active_date = current_logical_date;
         prune_history(state);
         return true;
     }
@@ -375,10 +414,41 @@ async fn update_history_retention(days: u32, ctx: State<'_, AppContext>) -> Resu
 }
 
 #[tauri::command]
+async fn update_daily_reset_time(time: String, ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
+    let time = time.trim().to_string();
+    let updated = {
+        let mut current = ctx.state.write().await;
+        current.daily_reset_time = if time.is_empty() { "00:00".to_string() } else { time };
+        if perform_daily_rollover(&mut current) {
+            save_state(&current)?;
+        } else {
+            save_state(&current)?;
+        }
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
+#[tauri::command]
 async fn clear_history(ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
     let updated = {
         let mut current = ctx.state.write().await;
         current.history.clear();
+        save_state(&current)?;
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
+#[tauri::command]
+async fn delete_history_record(id: String, ctx: State<'_, AppContext>) -> Result<OverlayState, String> {
+    let updated = {
+        let mut current = ctx.state.write().await;
+        current.history.retain(|rec| rec.id != id);
         save_state(&current)?;
         current.clone()
     };
@@ -607,7 +677,9 @@ pub fn run() {
             update_theme,
             set_title,
             update_history_retention,
+            update_daily_reset_time,
             clear_history,
+            delete_history_record,
             restore_history_todos,
             rollover_daily_todos,
             minimize_main_window,
@@ -631,16 +703,16 @@ pub fn run() {
                 *app_holder.write().await = Some(handle);
             });
 
-            // Background task: precise 12:00 AM midnight rollover loop
+            // Background task: customizable daily reset rollover loop
             tauri::async_runtime::spawn(async move {
                 loop {
-                    let now = Local::now();
-                    let next_midnight = match (now.date_naive() + Days::new(1)).and_hms_opt(0, 0, 1) {
-                        Some(naive) => naive.and_local_timezone(Local).single().unwrap_or(now + Duration::hours(24)),
-                        None => now + Duration::hours(24),
+                    let wait_duration = {
+                        let current = loop_state.read().await;
+                        duration_until_next_reset(&current.daily_reset_time)
                     };
-                    let wait_millis = (next_midnight - now).num_milliseconds().max(1000) as u64;
-                    tokio::time::sleep(tokio::time::Duration::from_millis(wait_millis)).await;
+                    // Sleep for wait_duration or at most 30s to stay responsive to user config updates
+                    let sleep_step = wait_duration.min(std::time::Duration::from_secs(30));
+                    tokio::time::sleep(sleep_step).await;
 
                     let (should_broadcast, updated_state) = {
                         let mut state = loop_state.write().await;

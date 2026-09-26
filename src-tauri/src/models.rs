@@ -76,6 +76,10 @@ pub fn default_history_retention() -> u32 {
     7
 }
 
+pub fn default_daily_reset_time() -> String {
+    "00:00".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct OverlayState {
@@ -84,6 +88,8 @@ pub struct OverlayState {
     pub theme: OverlayTheme,
     #[serde(default = "default_history_retention")]
     pub history_retention_days: u32,
+    #[serde(default = "default_daily_reset_time")]
+    pub daily_reset_time: String,
     #[serde(default)]
     pub history: Vec<DailyHistoryRecord>,
     #[serde(default)]
@@ -128,6 +134,7 @@ impl Default for OverlayState {
             ],
             theme: OverlayTheme::default(),
             history_retention_days: 7,
+            daily_reset_time: "00:00".to_string(),
             history: Vec::new(),
             last_active_date: chrono::Local::now().format("%Y-%m-%d").to_string(),
         }

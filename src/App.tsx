@@ -279,6 +279,19 @@ export default function App() {
     }
   }, []);
 
+  const handleDeleteHistoryRecord = useCallback(async (id: string) => {
+    setState((prev) => ({
+      ...prev,
+      history: prev.history ? prev.history.filter((r) => r.id !== id) : [],
+    }));
+    try {
+      const updated = await invoke<OverlayState>("delete_history_record", { id });
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("delete_history_record error:", e);
+    }
+  }, []);
+
   const handleRestoreTodos = useCallback(async (todosToRestore: any[]) => {
     try {
       const updated = await invoke<OverlayState>("restore_history_todos", { todos: todosToRestore });
@@ -294,6 +307,16 @@ export default function App() {
       if (updated) setState(updated);
     } catch (e) {
       console.error("rollover_daily_todos error:", e);
+    }
+  }, []);
+
+  const handleUpdateDailyResetTime = useCallback(async (time: string) => {
+    setState((prev) => ({ ...prev, dailyResetTime: time }));
+    try {
+      const updated = await invoke<OverlayState>("update_daily_reset_time", { time });
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("update_daily_reset_time error:", e);
     }
   }, []);
 
@@ -335,8 +358,10 @@ export default function App() {
       onUpdateTheme={handleUpdateTheme}
       onUpdateRetentionDays={handleUpdateRetentionDays}
       onClearHistory={handleClearHistory}
+      onDeleteHistoryRecord={handleDeleteHistoryRecord}
       onRestoreTodos={handleRestoreTodos}
       onRolloverDailyTodos={handleRolloverDailyTodos}
+      onUpdateDailyResetTime={handleUpdateDailyResetTime}
     />
   );
 }

@@ -40,6 +40,7 @@ export interface OverlayState {
   todos: TodoItem[];
   theme: OverlayTheme;
   historyRetentionDays?: number;
+  dailyResetTime?: string; // "00:00", "01:00", etc.
   history?: DailyHistoryRecord[];
   lastActiveDate?: string;
 }

@@ -17,6 +17,8 @@ import {
   GripVertical,
   Target,
   CheckSquare,
+  ArrowUpCircle,
+  Archive,
   Sparkles,
   Minus,
   Copy,
@@ -60,8 +62,10 @@ interface AppDashboardProps {
   onUpdateTheme: (newTheme: OverlayTheme) => Promise<void>;
   onUpdateRetentionDays: (days: number) => Promise<void>;
   onClearHistory: () => Promise<void>;
+  onDeleteHistoryRecord: (id: string) => Promise<void>;
   onRestoreTodos: (todos: TodoItem[]) => Promise<void>;
   onRolloverDailyTodos: () => Promise<void>;
+  onUpdateDailyResetTime?: (time: string) => Promise<void>;
 }
 
 type DashboardView = "todo" | "history";
@@ -178,10 +182,10 @@ const SortableGoalRow: React.FC<SortableGoalRowProps> = ({
       {/* Tracked completion timestamp badge (visible in application, not in widget) */}
       {todo.completed && todo.completedAt && (
         <span
-          className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-mono text-emerald-400 select-none animate-in fade-in"
+          className="shrink-0 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-neutral-300 select-none animate-in fade-in"
           title={`Checked at ${todo.completedAt}`}
         >
-          <Clock className="w-2.5 h-2.5 text-emerald-400" />
+          <Clock className="w-2.5 h-2.5 text-[#2ea043]" />
           <span>{todo.completedAt}</span>
         </span>
       )}
@@ -227,8 +231,10 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   onUpdateTheme,
   onUpdateRetentionDays,
   onClearHistory,
+  onDeleteHistoryRecord,
   onRestoreTodos,
   onRolloverDailyTodos,
+  onUpdateDailyResetTime,
 }) => {
   const [activeView, setActiveView] = useState<DashboardView>("todo");
   const [isMaximized, setIsMaximized] = useState(false);
@@ -237,6 +243,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   const [newTodoText, setNewTodoText] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [historySearchQuery, setHistorySearchQuery] = useState("");
 
   // Settings modal state
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -490,7 +497,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
         <div className="flex items-center gap-3 sm:gap-4 shrink-0" data-no-drag>
           <div className="flex items-center gap-2.5 shrink-0">
             <img
-              src="/logo.png"
+              src="/logo2.png"
               alt="Taskmaster Logo"
               className="w-6 h-6 sm:w-7 sm:h-7 object-contain select-none transition-transform hover:scale-105 duration-200"
             />
@@ -521,28 +528,38 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
           />
         </div>
 
-        {/* Center: Search pill (visible on wide screens, collapses gracefully to prevent squeezing buttons) */}
-        {activeView === "todo" && (
-          <div className="relative hidden xl:flex items-center max-w-xs flex-1 min-w-0 mx-2" data-no-drag>
-            <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3.5 pointer-events-none shrink-0" />
-            <input
-              type="text"
-              placeholder="Search tasks or goals..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#16181c]/90 border border-white/[0.08] hover:border-white/[0.14] focus:border-[#ff5733]/65 rounded-full pl-9 pr-8 py-1.5 text-xs text-white placeholder:text-neutral-500 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff5733]/20"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 text-neutral-400 hover:text-white text-xs cursor-pointer"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-        )}
+        {/* Center: Search pill (visible on wide screens for both To-do and History) */}
+        <div className="relative hidden lg:flex items-center max-w-xs flex-1 min-w-0 mx-2" data-no-drag>
+          <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3.5 pointer-events-none shrink-0" />
+          <input
+            type="text"
+            placeholder={activeView === "history" ? "Search past tasks or dates..." : "Search tasks or goals..."}
+            value={activeView === "history" ? historySearchQuery : searchQuery}
+            onChange={(e) => {
+              if (activeView === "history") {
+                setHistorySearchQuery(e.target.value);
+              } else {
+                setSearchQuery(e.target.value);
+              }
+            }}
+            className="w-full bg-[#16181c]/90 border border-white/[0.08] hover:border-white/[0.14] focus:border-[#ff5733]/65 rounded-full pl-9 pr-8 py-1.5 text-xs text-white placeholder:text-neutral-500 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff5733]/20"
+          />
+          {(activeView === "history" ? historySearchQuery : searchQuery) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (activeView === "history") {
+                  setHistorySearchQuery("");
+                } else {
+                  setSearchQuery("");
+                }
+              }}
+              className="absolute right-3 text-neutral-400 hover:text-white text-xs cursor-pointer"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
 
         {/* Right: Update, Timer Badge, Widget Action & Window Controls */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0" data-no-drag>
@@ -554,7 +571,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ff5733]/15 text-[#ff5733] border border-[#ff5733]/30 text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#ff5733]/25 transition-all shadow-sm"
               title="Click to view update details"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#ff5733] shrink-0" />
+              <ArrowUpCircle className="w-3.5 h-3.5 text-[#ff5733] shrink-0" />
               <span className="whitespace-nowrap">v{updateInfo.version} Available!</span>
             </button>
           )}
@@ -663,12 +680,13 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
             history={state.history || []}
             retentionDays={state.historyRetentionDays || 7}
             accentColor={accentColor}
+            searchQuery={historySearchQuery}
             onRestoreTodos={onRestoreTodos}
+            onDeleteHistoryRecord={onDeleteHistoryRecord}
             onOpenSettings={() => {
               setSettingsDefaultTab("daily");
               setIsSettingsModalOpen(true);
             }}
-            onManualArchive={onRolloverDailyTodos}
           />
         ) : (
           <div className="flex flex-col gap-6">
@@ -763,6 +781,17 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
 
                     {/* Progress pill & Quick Actions */}
                     <div className="flex items-center gap-2">
+                      {/* Archive Button on the left side of the completion bar */}
+                      <button
+                        type="button"
+                        onClick={onRolloverDailyTodos}
+                        className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-neutral-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/[0.16] transition-all cursor-pointer shadow-sm active:scale-95"
+                        title="Archive current to-dos into History and start a fresh day"
+                      >
+                        <Archive className="w-3.5 h-3.5 text-[#ff5733]" />
+                        <span>Archive</span>
+                      </button>
+
                       <span className="bg-[#191b20]/80 border border-white/[0.08] rounded-full px-3 py-1 text-xs text-neutral-300 font-mono">
                         {completedCount}/{totalCount} complete
                       </span>
@@ -950,6 +979,8 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
         onUpdateTheme={onUpdateTheme}
         historyRetentionDays={state.historyRetentionDays || 7}
         onUpdateRetentionDays={onUpdateRetentionDays}
+        dailyResetTime={state.dailyResetTime || "00:00"}
+        onUpdateDailyResetTime={onUpdateDailyResetTime}
         onClearHistory={onClearHistory}
         onManualArchive={onRolloverDailyTodos}
         onCheckUpdates={handleManualCheckUpdates}

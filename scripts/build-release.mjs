@@ -52,6 +52,8 @@ function findBestArtifact(dir, predicate) {
 }
 
 const candidateExeNames = [
+  "Taskmaster.exe",
+  "taskmaster.exe",
   "todo-overlay-app.exe",
   "Taskmaster Everywhere.exe",
   "Taskmaster-Everywhere.exe",
@@ -73,16 +75,32 @@ if (foundExes.length > 0) {
 let setupExe = findBestArtifact(nsisDir, (f) => f.endsWith("-setup.exe") || f.endsWith(".exe"));
 let setupMsi = findBestArtifact(msiDir, (f) => f.endsWith(".msi"));
 
-// 3. Prepare release files map
+// 3. Prepare release files map (Standardized cleanly as 'Taskmaster' without 'Everywhere')
 const filesToDeploy = [
-  { source: portableExe, targetName: "Taskmaster-Everywhere-Portable.exe", desc: "Portable Executable (No install needed)" },
-  { source: setupExe, targetName: "Taskmaster-Everywhere-Setup.exe", desc: "EXE Setup Installer (.exe)" },
-  { source: setupMsi, targetName: "Taskmaster-Everywhere-Setup.msi", desc: "MSI Setup Installer (.msi)" },
+  { source: portableExe, targetName: "Taskmaster-Portable.exe", desc: "Portable Executable (No install needed)" },
+  { source: setupExe, targetName: "Taskmaster-Setup.exe", desc: "EXE Setup Installer (.exe)" },
+  { source: setupMsi, targetName: "Taskmaster-Setup.msi", desc: "MSI Setup Installer (.msi)" },
 ];
 
 // 4. Copy to release folders
+// Ensure any running instances of Taskmaster are stopped so files can be replaced on Windows
+try {
+  if (process.platform === "win32") {
+    execSync('taskkill /F /IM "Taskmaster-Portable.exe" /IM "Taskmaster.exe" /IM "Taskmaster-Everywhere-Portable.exe" /IM "Taskmaster Everywhere.exe" /IM "todo-overlay-app.exe" 2>nul || exit 0', { stdio: "ignore" });
+  }
+} catch {
+  // Ignore if not running
+}
+
 for (const dir of releaseDirs) {
   fs.mkdirSync(dir, { recursive: true });
+  // Clean up legacy 'Everywhere' binaries if present
+  for (const oldFile of ["Taskmaster-Everywhere-Portable.exe", "Taskmaster-Everywhere-Setup.exe", "Taskmaster-Everywhere-Setup.msi"]) {
+    const oldPath = path.resolve(dir, oldFile);
+    if (fs.existsSync(oldPath)) {
+      try { fs.unlinkSync(oldPath); } catch {}
+    }
+  }
 
   for (const item of filesToDeploy) {
     if (item.source && fs.existsSync(item.source)) {
@@ -98,6 +116,13 @@ for (const dir of releaseDirs) {
     }
   }
 }
+
+// Flush Windows Explorer icon cache so new icon appears immediately
+try {
+  if (process.platform === "win32") {
+    execSync('ie4uinit.exe -show 2>nul || exit 0', { stdio: "ignore" });
+  }
+} catch {}
 
 // 5. Output Summary
 console.log("\n========================================================");

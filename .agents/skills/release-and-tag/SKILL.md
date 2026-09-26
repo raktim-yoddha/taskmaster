@@ -42,7 +42,7 @@ git push origin master
 ### 5. Create and Push Git Tag
 Create an annotated tag and push it:
 ```powershell
-git tag -a vX.Y.Z -m "Release vX.Y.Z - Taskmaster Everywhere"
+git tag -a vX.Y.Z -m "Release vX.Y.Z - Taskmaster"
 git push origin vX.Y.Z
 ```
 
@@ -50,10 +50,10 @@ git push origin vX.Y.Z
 Use the GitHub CLI (`gh`) to upload the 3 binaries:
 ```powershell
 gh release create vX.Y.Z `
-  releases/Taskmaster-Everywhere-Portable.exe `
-  releases/Taskmaster-Everywhere-Setup.exe `
-  releases/Taskmaster-Everywhere-Setup.msi `
-  --title "Taskmaster Everywhere vX.Y.Z" `
+  releases/Taskmaster-Portable.exe `
+  releases/Taskmaster-Setup.exe `
+  releases/Taskmaster-Setup.msi `
+  --title "Taskmaster vX.Y.Z" `
   --notes "<Release highlights>"
 ```
 

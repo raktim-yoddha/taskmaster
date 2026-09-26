@@ -6,36 +6,38 @@ import {
   XCircle,
   Clock,
   RotateCcw,
-  Search,
-  Sparkles,
   TrendingUp,
   Archive,
   ChevronDown,
   ChevronUp,
   Settings,
-  X
+  X,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 
 interface HistoryViewProps {
   history: DailyHistoryRecord[];
   retentionDays: number;
   accentColor: string;
+  searchQuery?: string;
   onRestoreTodos: (todos: TodoItem[]) => Promise<void>;
+  onDeleteHistoryRecord?: (id: string) => Promise<void>;
   onOpenSettings: () => void;
-  onManualArchive?: () => Promise<void>;
 }
 
 export const HistoryView: React.FC<HistoryViewProps> = ({
   history = [],
   retentionDays = 7,
   accentColor = "#ff5733",
+  searchQuery = "",
   onRestoreTodos,
+  onDeleteHistoryRecord,
   onOpenSettings,
-  onManualArchive,
 }) => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>({});
   const [restoringDayId, setRestoringDayId] = useState<string | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<DailyHistoryRecord | null>(null);
 
   const toggleDayCollapse = (id: string) => {
     setCollapsedDays((prev) => ({
@@ -69,53 +71,46 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     }
   };
 
-  const getRetentionLabel = (days: number) => {
-    if (days === 7) return "1 Week (7 Days)";
-    if (days === 14) return "2 Weeks (14 Days)";
-    if (days === 30) return "1 Month (30 Days)";
-    return `${days} Days`;
-  };
-
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
-      {/* Overview Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="w-full space-y-6 animate-in fade-in duration-200">
+      {/* Overview Stats Cards - Cleaned and trimmed down */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         <div className="liquid-glass-card rounded-[20px] p-4 flex flex-col justify-between border border-white/[0.07] shadow-lg">
           <div className="flex items-center justify-between text-neutral-400 text-xs font-medium">
             <span>Archived Days</span>
-            <Calendar className="w-4 h-4 text-sky-400" />
+            <Calendar className="w-3.5 h-3.5 text-neutral-400" />
           </div>
           <div className="mt-2.5">
             <span className="text-2xl font-bold font-mono text-white tracking-tight">
               {totalDays}
             </span>
-            <span className="text-[11px] text-neutral-400 ml-1.5 font-sans">days on record</span>
           </div>
         </div>
 
         <div className="liquid-glass-card rounded-[20px] p-4 flex flex-col justify-between border border-white/[0.07] shadow-lg">
           <div className="flex items-center justify-between text-neutral-400 text-xs font-medium">
             <span>Completed Tasks</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#2ea043]" />
           </div>
-          <div className="mt-2.5">
-            <span className="text-2xl font-bold font-mono text-emerald-400 tracking-tight">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold font-mono text-white tracking-tight">
               {totalCompleted}
             </span>
-            <span className="text-[11px] text-neutral-400 ml-1.5 font-sans">of {totalTasks} tasks</span>
+            <span className="text-xs font-mono text-neutral-500">
+              / {totalTasks}
+            </span>
           </div>
         </div>
 
         <div className="liquid-glass-card rounded-[20px] p-4 flex flex-col justify-between border border-white/[0.07] shadow-lg">
           <div className="flex items-center justify-between text-neutral-400 text-xs font-medium">
             <span>Success Rate</span>
-            <TrendingUp className="w-4 h-4 text-[#ff5733]" />
+            <TrendingUp className="w-3.5 h-3.5 text-[#ff5733]" />
           </div>
           <div className="mt-2.5">
             <span className="text-2xl font-bold font-mono text-white tracking-tight">
               {completionRate}%
             </span>
-            <span className="text-[11px] text-neutral-400 ml-1.5 font-sans">overall finish rate</span>
           </div>
         </div>
 
@@ -125,54 +120,18 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <button
               type="button"
               onClick={onOpenSettings}
-              className="p-1 rounded-md hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 -mr-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
               title="Change retention in Settings"
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="mt-2.5">
-            <span className="text-sm font-semibold text-neutral-200 tracking-tight block">
-              {getRetentionLabel(retentionDays)}
+            <span className="text-lg font-bold font-mono text-white tracking-tight">
+              {retentionDays === 7 ? "7 Days" : retentionDays === 14 ? "14 Days" : retentionDays === 30 ? "30 Days" : `${retentionDays} Days`}
             </span>
-            <span className="text-[10px] text-neutral-400">auto-prunes older history</span>
           </div>
         </div>
-      </div>
-
-      {/* Search & Actions Bar */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search past tasks, notes, or dates..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#16181c]/90 border border-white/[0.08] hover:border-white/[0.14] focus:border-[#ff5733]/65 rounded-full pl-9 pr-8 py-2 text-xs text-white placeholder:text-neutral-500 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff5733]/20"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white text-xs cursor-pointer"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-
-        {onManualArchive && (
-          <button
-            type="button"
-            onClick={onManualArchive}
-            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-neutral-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] transition-all cursor-pointer"
-            title="Archive current to-dos into History now and empty list"
-          >
-            <Archive className="w-3.5 h-3.5 text-neutral-400" />
-            <span>Archive Today Now</span>
-          </button>
-        )}
       </div>
 
       {/* History Stacks List */}
@@ -187,18 +146,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <p className="text-xs text-neutral-400 max-w-md leading-relaxed">
             {searchQuery
               ? `No archived tasks matching "${searchQuery}". Try searching for another term.`
-              : "Every night at 12:00 AM (midnight), your active to-do list automatically gets saved here into a daily stack and your list is emptied for a fresh morning. Completed tasks store their exact checklist timestamp."}
+              : "At your daily reset time, active to-dos automatically archive into history stacks and reset for a fresh day. Completed tasks track their exact checklist timestamp."}
           </p>
-          {!searchQuery && onManualArchive && (
-            <button
-              type="button"
-              onClick={onManualArchive}
-              className="liquid-coral-btn mt-3 text-xs px-4 py-2 rounded-full font-semibold flex items-center gap-2 cursor-pointer shadow-md"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Snapshot Current To-Dos into History</span>
-            </button>
-          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -231,34 +180,35 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     </button>
 
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-white tracking-tight">
-                          {record.formattedDate || record.date}
-                        </span>
-                        {record.title && (
-                          <span className="text-[11px] font-mono text-neutral-400 px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.06] truncate max-w-[200px]">
-                            {record.title}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[11px] text-neutral-400 font-mono">
-                          {completedCount}/{totalCount} tasks completed ({pct}%)
-                        </span>
-                      </div>
+                      <span className="text-sm font-bold text-white tracking-tight">
+                        {record.formattedDate || record.date}
+                      </span>
                     </div>
                   </div>
 
                   {/* Actions & Progress Pill */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Progress Bar pill */}
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08]">
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {/* Delete Entire Card Button */}
+                    <button
+                      type="button"
+                      onClick={() => setCardToDelete(record)}
+                      className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-400 hover:bg-rose-500/15 border border-transparent hover:border-rose-500/25 transition-all cursor-pointer"
+                      title="Delete this entire daily history card"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Progress Bar pill with to-dos done on the left */}
+                    <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+                      <span className="text-[11px] font-mono text-neutral-400 whitespace-nowrap">
+                        {completedCount} out of {totalCount}
+                      </span>
                       <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-300"
                           style={{
                             width: `${pct}%`,
-                            backgroundColor: pct === 100 ? "#10b981" : accentColor,
+                            backgroundColor: pct === 100 ? "#ff6847" : accentColor,
                           }}
                         />
                       </div>
@@ -277,8 +227,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                         title="Copy uncompleted tasks back into Today's to-do list"
                       >
                         <RotateCcw className={`w-3 h-3 text-[#ff5733] ${restoringDayId === record.id ? "animate-spin" : ""}`} />
-                        <span className="hidden md:inline">Carry Incomplete to Today</span>
-                        <span className="md:hidden">Carry ({incompleteTodos.length})</span>
+                        <span>Carry Over</span>
                       </button>
                     )}
                   </div>
@@ -293,23 +242,23 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                           key={todo.id}
                           className={`rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-3 border transition-all ${
                             todo.completed
-                              ? "bg-emerald-500/[0.04] border-emerald-500/20"
-                              : "bg-[#ff5733]/[0.04] border-[#ff5733]/20"
+                              ? "bg-white/[0.02] border-white/[0.06] hover:border-white/[0.1]"
+                              : "bg-[#ff5733]/[0.035] border-[#ff5733]/15 hover:border-[#ff5733]/25"
                           }`}
                         >
-                          {/* Left: Green Tick or Orange Cross Sign */}
+                          {/* Left: Dimmed Green Checkmark or Subtle Terracotta Cross */}
                           <div className="flex items-center gap-3 min-w-0">
                             {todo.completed ? (
                               <div
-                                className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0"
+                                className="w-5 h-5 rounded-full bg-[#2ea043]/15 border border-[#2ea043]/30 flex items-center justify-center text-[#2ea043] shrink-0"
                                 title="Completed task"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                               </div>
                             ) : (
                               <div
-                                className="w-5 h-5 rounded-full bg-[#ff5733]/20 border border-[#ff5733]/40 flex items-center justify-center text-[#ff5733] shrink-0"
-                                title="Incomplete at midnight"
+                                className="w-5 h-5 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400/80 shrink-0"
+                                title="Incomplete at rollover"
                               >
                                 <XCircle className="w-3.5 h-3.5" />
                               </div>
@@ -318,7 +267,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                             <span
                               className={`text-xs font-medium truncate ${
                                 todo.completed
-                                  ? "text-neutral-300 line-through decoration-neutral-500"
+                                  ? "text-neutral-400 line-through decoration-neutral-600"
                                   : "text-neutral-100"
                               }`}
                             >
@@ -326,19 +275,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                             </span>
                           </div>
 
-                          {/* Right: Timestamp or Status badge */}
+                          {/* Right: Timestamp or Status badge - neutral badge with dimmed green clock icon only */}
                           <div className="shrink-0 flex items-center gap-2">
                             {todo.completed ? (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                                <Clock className="w-2.5 h-2.5" />
-                                {todo.completedAt ? (
-                                  <span>{todo.completedAt}</span>
-                                ) : (
-                                  <span>Done</span>
-                                )}
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.04] text-neutral-300 border border-white/[0.08] flex items-center gap-1.5">
+                                <Clock className="w-2.5 h-2.5 text-[#2ea043]" />
+                                <span>{todo.completedAt || "Done"}</span>
                               </span>
                             ) : (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#ff5733]/15 text-[#ff5733] border border-[#ff5733]/30">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300/80 border border-rose-500/20">
                                 Incomplete
                               </span>
                             )}
@@ -351,6 +296,94 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete Confirmation Warning Pop-up Modal */}
+      {cardToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-in fade-in duration-200 select-none">
+          <div
+            className="relative w-full max-w-md rounded-[24px] liquid-glass-card border border-white/[0.12] p-6 shadow-2xl space-y-5 text-neutral-100 overflow-hidden"
+            style={{
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08)",
+            }}
+          >
+            {/* Ambient Coral Glow */}
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-gradient-to-b from-[#ff5733]/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+            {/* Header: Title and Dismiss */}
+            <div className="flex items-start justify-between gap-3 relative">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-[#ff6847] shrink-0 shadow-inner">
+                  <Trash2 className="w-4 h-4 text-[#ff5733]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white tracking-tight">
+                    Delete Daily History Card?
+                  </h3>
+                  <p className="text-[11px] text-neutral-400">
+                    Permanently remove this archived record
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCardToDelete(null)}
+                className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Context Card Preview */}
+            <div className="rounded-2xl bg-black/35 border border-white/[0.07] p-4 space-y-2 relative">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-white tracking-tight flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-[#ff5733]" />
+                  {cardToDelete.formattedDate || cardToDelete.date}
+                </span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-neutral-300 border border-white/[0.08]">
+                  {cardToDelete.todos.length} {cardToDelete.todos.length === 1 ? "task" : "tasks"}
+                </span>
+              </div>
+              {cardToDelete.title && (
+                <p className="text-[11px] text-neutral-400 truncate">
+                  Goal: <span className="text-neutral-300 font-medium">{cardToDelete.title}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Warning Text */}
+            <div className="flex items-center gap-2 text-[11px] text-neutral-400 relative">
+              <AlertTriangle className="w-3.5 h-3.5 text-[#ff902b] shrink-0" />
+              <span>This card and all its archived tasks will be permanently removed.</span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-1 border-t border-white/[0.08] relative">
+              <button
+                type="button"
+                onClick={() => setCardToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (onDeleteHistoryRecord) {
+                    await onDeleteHistoryRecord(cardToDelete.id);
+                  }
+                  setCardToDelete(null);
+                }}
+                className="liquid-coral-btn px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete History Card</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

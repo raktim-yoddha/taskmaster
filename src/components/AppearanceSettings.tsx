@@ -395,8 +395,8 @@ export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       <div className="liquid-glass-card rounded-[22px] p-6 shadow-xl flex items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Taskmaster Everywhere" className="w-6 h-6 object-contain select-none" />
-            <span className="text-sm font-bold text-white tracking-tight">Taskmaster Everywhere</span>
+            <img src="/logo2.png" alt="Taskmaster" className="w-6 h-6 object-contain select-none" />
+            <span className="text-sm font-bold text-white tracking-tight">Taskmaster</span>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#ff5733]/15 text-[#ff5733] border border-[#ff5733]/30">
               v{CURRENT_VERSION}
             </span>

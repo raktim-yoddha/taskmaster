@@ -579,7 +579,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
           {/* Logo & Counter Badge */}
           <div data-tauri-drag-region className="flex items-center gap-1.5 min-w-0">
             <img
-              src="/logo.png"
+              src="/logo2.png"
               alt="Logo"
               className="w-4 h-4 object-contain shrink-0 select-none pointer-events-none"
             />
@@ -659,7 +659,7 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
             title="Drag to reposition widget"
           >
             <img 
-              src="/logo.png" 
+              src="/logo2.png" 
               alt="Taskmaster Widget Logo" 
               className="w-3.5 h-3.5 object-contain select-none cursor-grab active:cursor-grabbing" 
             />

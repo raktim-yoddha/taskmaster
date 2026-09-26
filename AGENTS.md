@@ -49,9 +49,9 @@ Run:
 pnpm run release
 ```
 Ensure all 3 release binaries are produced in `releases/`:
-- `releases/Taskmaster-Everywhere-Portable.exe`
-- `releases/Taskmaster-Everywhere-Setup.exe`
-- `releases/Taskmaster-Everywhere-Setup.msi`
+- `releases/Taskmaster-Portable.exe`
+- `releases/Taskmaster-Setup.exe`
+- `releases/Taskmaster-Setup.msi`
 
 ### Step 4: Git Commit & Push Changes
 Stage and commit all source code and configuration changes:
@@ -64,7 +64,7 @@ git push origin master
 ### Step 5: Create & Push Git Tag
 Create an annotated git tag and push it to GitHub:
 ```powershell
-git tag -a vX.Y.Z -m "Release vX.Y.Z - Taskmaster Everywhere"
+git tag -a vX.Y.Z -m "Release vX.Y.Z - Taskmaster"
 git push origin vX.Y.Z
 ```
 
@@ -72,10 +72,10 @@ git push origin vX.Y.Z
 Publish the release using the GitHub CLI (`gh`) and attach all 3 binaries:
 ```powershell
 gh release create vX.Y.Z `
-  releases/Taskmaster-Everywhere-Portable.exe `
-  releases/Taskmaster-Everywhere-Setup.exe `
-  releases/Taskmaster-Everywhere-Setup.msi `
-  --title "Taskmaster Everywhere vX.Y.Z" `
+  releases/Taskmaster-Portable.exe `
+  releases/Taskmaster-Setup.exe `
+  releases/Taskmaster-Setup.msi `
+  --title "Taskmaster vX.Y.Z" `
   --notes "<Changelog and release highlights>"
 ```
 
