@@ -75,9 +75,12 @@ if (foundExes.length > 0) {
 let setupExe = findBestArtifact(nsisDir, (f) => f.endsWith("-setup.exe") || f.endsWith(".exe"));
 let setupMsi = findBestArtifact(msiDir, (f) => f.endsWith(".msi"));
 
-// 3. Prepare release files map (Standardized cleanly as 'Taskmaster' without 'Everywhere')
+// 3. Prepare release files map (Versioned Setup EXE and MSI + Portable)
 const filesToDeploy = [
   { source: portableExe, targetName: "Taskmaster-Portable.exe", desc: "Portable Executable (No install needed)" },
+  { source: setupExe, targetName: `Taskmaster-v${targetVersion}-Setup.exe`, desc: `EXE Setup Installer v${targetVersion} (.exe)` },
+  { source: setupMsi, targetName: `Taskmaster-v${targetVersion}-Setup.msi`, desc: `MSI Setup Installer v${targetVersion} (.msi)` },
+  // Also provide standard aliases for local convenience
   { source: setupExe, targetName: "Taskmaster-Setup.exe", desc: "EXE Setup Installer (.exe)" },
   { source: setupMsi, targetName: "Taskmaster-Setup.msi", desc: "MSI Setup Installer (.msi)" },
 ];
