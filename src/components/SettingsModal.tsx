@@ -212,7 +212,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={() => setActiveTab("daily")}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
               activeTab === "daily"
-                ? "bg-[#ff5733] text-white shadow-md shadow-[#ff5733]/25"
+                ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] [&>svg]:[filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.4))] shadow-sm shadow-black/25 border border-[#ff5733]"
                 : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
             }`}
           >
@@ -225,7 +225,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={() => setActiveTab("appearance")}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
               activeTab === "appearance"
-                ? "bg-[#ff5733] text-white shadow-md shadow-[#ff5733]/25"
+                ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] [&>svg]:[filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.4))] shadow-sm shadow-black/25 border border-[#ff5733]"
                 : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
             }`}
           >
@@ -238,7 +238,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={() => setActiveTab("updates")}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
               activeTab === "updates"
-                ? "bg-[#ff5733] text-white shadow-md shadow-[#ff5733]/25"
+                ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] [&>svg]:[filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.4))] shadow-sm shadow-black/25 border border-[#ff5733]"
                 : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
             }`}
           >

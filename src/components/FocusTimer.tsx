@@ -141,7 +141,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
             type="button"
             onClick={() => setShowSettings(!showSettings)}
             className={`p-2 rounded-xl border transition-all cursor-pointer ${showSettings
-                ? "bg-[#ff5733] text-white border-[#ff5733] shadow-md shadow-[#ff5733]/30"
+                ? "bg-[#ff5733] text-white [&>svg]:[filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.4))] border-[#ff5733] shadow-sm shadow-black/25"
                 : "bg-white/[0.04] border-white/[0.06] text-neutral-400 hover:text-white hover:bg-white/[0.08]"
               }`}
             title="Timer durations & settings"
@@ -390,7 +390,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({
                 type="button"
                 onClick={() => onSetCountdownDuration(m * 60)}
                 className={`px-3 py-1 rounded-full text-xs font-mono font-medium transition-all cursor-pointer ${timer.targetDuration === m * 60
-                    ? "bg-[#ff5733] text-white font-bold shadow-md shadow-[#ff5733]/30 border border-[#ff5733]"
+                    ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] font-bold shadow-sm shadow-black/25 border border-[#ff5733]"
                     : "liquid-glass-pill"
                   }`}
               >

@@ -120,7 +120,7 @@ export function SegmentedControl<T extends string = string>({
           isMounted
             ? "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
             : "transition-none"
-        } ${pillClassName || "bg-[#ff5733] border border-[#ff5733] shadow-md shadow-[#ff5733]/30"}`}
+        } ${pillClassName || "bg-[#ff5733] border border-[#ff5733]/90 shadow-sm shadow-black/25"}`}
         style={{
           transform: `translate3d(${indicator.left}px, ${indicator.top}px, 0)`,
           width: `${indicator.width}px`,
@@ -130,12 +130,12 @@ export function SegmentedControl<T extends string = string>({
             ? {
                 backgroundColor: accentColor,
                 borderColor: accentColor,
-                boxShadow: `0 4px 14px -2px ${accentColor}66`,
+                boxShadow: `0 2px 6px rgba(0, 0, 0, 0.25), 0 3px 10px -2px ${accentColor}55`,
               }
             : {
                 backgroundColor: "#ff5733",
                 borderColor: "#ff5733",
-                boxShadow: "0 4px 14px -2px rgba(255, 87, 51, 0.4)",
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25), 0 3px 10px -2px rgba(255, 87, 51, 0.25)",
               }),
         }}
       />
@@ -156,7 +156,9 @@ export function SegmentedControl<T extends string = string>({
             title={option.title}
             onClick={() => onChange(option.id)}
             className={`relative z-10 flex items-center gap-1.5 ${defaultButtonPadding} rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-colors duration-200 cursor-pointer outline-none focus:outline-none focus-visible:outline-none border-0 bg-transparent ${
-              isActive ? "text-white" : "text-neutral-400 hover:text-white"
+              isActive
+                ? "text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] [&>svg]:[filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.4))]"
+                : "text-neutral-400 hover:text-white"
             } ${buttonClassName}`}
           >
             {option.icon}

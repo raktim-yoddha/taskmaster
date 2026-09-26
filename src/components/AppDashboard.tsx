@@ -839,7 +839,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                       type="button"
                       onClick={() => setFilter("all")}
                       className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${filter === "all"
-                          ? "bg-[#ff5733] text-white shadow-sm shadow-[#ff5733]/30 border border-[#ff5733]"
+                          ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] shadow-sm shadow-black/25 border border-[#ff5733]"
                           : "liquid-glass-pill"
                         }`}
                     >
@@ -849,7 +849,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                       type="button"
                       onClick={() => setFilter("active")}
                       className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${filter === "active"
-                          ? "bg-[#ff5733] text-white shadow-sm shadow-[#ff5733]/30 border border-[#ff5733]"
+                          ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] shadow-sm shadow-black/25 border border-[#ff5733]"
                           : "liquid-glass-pill"
                         }`}
                     >
@@ -859,7 +859,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                       type="button"
                       onClick={() => setFilter("completed")}
                       className={`px-3.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0 transition-all cursor-pointer ${filter === "completed"
-                          ? "bg-[#ff5733] text-white shadow-sm shadow-[#ff5733]/30 border border-[#ff5733]"
+                          ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] shadow-sm shadow-black/25 border border-[#ff5733]"
                           : "liquid-glass-pill"
                         }`}
                     >
