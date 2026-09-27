@@ -21,12 +21,12 @@ import { CURRENT_VERSION } from "../utils/updater";
 const SETTINGS_TAB_OPTIONS: SegmentedOption<"daily" | "appearance" | "updates">[] = [
   {
     id: "daily",
-    label: "Daily To-Do & History",
+    label: "Daily To-Do",
     icon: <Calendar className="w-3.5 h-3.5" />,
   },
   {
     id: "appearance",
-    label: "Appearance & Theme",
+    label: "Appearance",
     icon: <Palette className="w-3.5 h-3.5" />,
   },
   {

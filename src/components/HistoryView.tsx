@@ -10,7 +10,6 @@ import {
   Archive,
   ChevronDown,
   ChevronUp,
-  Settings,
   X,
   Trash2,
   AlertTriangle
@@ -23,7 +22,7 @@ interface HistoryViewProps {
   searchQuery?: string;
   onRestoreTodos: (todos: TodoItem[]) => Promise<void>;
   onDeleteHistoryRecord?: (id: string) => Promise<void>;
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const HistoryView: React.FC<HistoryViewProps> = ({
@@ -33,7 +32,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   searchQuery = "",
   onRestoreTodos,
   onDeleteHistoryRecord,
-  onOpenSettings,
 }) => {
   const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>({});
   const [restoringDayId, setRestoringDayId] = useState<string | null>(null);
@@ -117,14 +115,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         <div className="liquid-glass-card rounded-[20px] p-4 flex flex-col justify-between border border-white/[0.07] shadow-lg">
           <div className="flex items-center justify-between text-neutral-400 text-xs font-medium">
             <span>Retention Window</span>
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="p-1 -mr-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-              title="Change retention in Settings"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
           </div>
           <div className="mt-2.5">
             <span className="text-lg font-bold font-mono text-white tracking-tight">
