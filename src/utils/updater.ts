@@ -1,7 +1,7 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
 
-export const CURRENT_VERSION = "0.2.0";
+export const CURRENT_VERSION = "0.2.1";
 export const GITHUB_REPO = "raktim-yoddha/todo-app";
 
 export interface AppInstallInfo {
