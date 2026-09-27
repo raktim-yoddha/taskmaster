@@ -29,8 +29,57 @@ export const ThemedSelect: React.FC<ThemedSelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
+
+  // Auto-scroll scrollable ancestor so the section moves up and the full dropdown is visible
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const scrollToFit = () => {
+      if (!menuRef.current) return;
+      const menuEl = menuRef.current;
+
+      // Find the nearest scrollable ancestor container (e.g. SettingsModal scroll container)
+      let parent: HTMLElement | null = menuEl.parentElement;
+      let scrollContainer: HTMLElement | null = null;
+      while (parent && parent !== document.body) {
+        const style = window.getComputedStyle(parent);
+        const overflowY = style.overflowY;
+        if (
+          (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") &&
+          parent.scrollHeight > parent.clientHeight
+        ) {
+          scrollContainer = parent;
+          break;
+        }
+        parent = parent.parentElement;
+      }
+
+      if (scrollContainer) {
+        const menuRect = menuEl.getBoundingClientRect();
+        const containerRect = scrollContainer.getBoundingClientRect();
+
+        // Calculate how much the dropdown exceeds the bottom of the visible scroll container
+        const buffer = 24; // comfortable breathing room above footer / bottom boundary
+        const overflowBottom = menuRect.bottom - containerRect.bottom + buffer;
+
+        if (overflowBottom > 0) {
+          scrollContainer.scrollBy({
+            top: overflowBottom,
+            behavior: "smooth",
+          });
+        }
+      } else {
+        menuEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    };
+
+    // Small delay to allow dropdown entrance animation and DOM layout measurement
+    const timer = setTimeout(scrollToFit, 40);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -107,6 +156,7 @@ export const ThemedSelect: React.FC<ThemedSelectProps> = ({
       {/* Floating Dropdown Menu */}
       {isOpen && (
         <div
+          ref={menuRef}
           role="listbox"
           className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-white/[0.12] bg-[#16181d]/95 backdrop-blur-2xl shadow-2xl p-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
           style={{

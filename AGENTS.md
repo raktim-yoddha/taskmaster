@@ -52,7 +52,6 @@ Ensure the versioned release binaries are produced in `releases/`:
 - `releases/Taskmaster-vX.Y.Z-Portable.exe`
 - `releases/Taskmaster-vX.Y.Z-Setup.exe`
 - `releases/Taskmaster-vX.Y.Z-Setup.msi`
-(along with unversioned aliases `Taskmaster-Portable.exe`, `Taskmaster-Setup.exe`, and `Taskmaster-Setup.msi` for local convenience).
 
 ### Step 4: Git Commit & Push Changes
 Stage and commit all source code and configuration changes:
@@ -94,8 +93,6 @@ Whenever a new version `vX.Y.Z` is released to GitHub tags, **all binaries** att
 - `Taskmaster-vX.Y.Z-Portable.exe` (Portable executable)
 - `Taskmaster-vX.Y.Z-Setup.exe` (NSIS setup installer)
 - `Taskmaster-vX.Y.Z-Setup.msi` (MSI setup installer)
-
-(Note: `build-release.mjs` also outputs unversioned aliases `Taskmaster-Portable.exe`, `Taskmaster-Setup.exe`, and `Taskmaster-Setup.msi` locally for convenience).
 
 This ensures users downloading release binaries know the exact version they possess, while maintaining 100% compatibility with the in-app auto-updater (`UpdateNotificationModal.tsx` regex matching).
 

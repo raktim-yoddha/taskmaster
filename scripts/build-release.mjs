@@ -5,13 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, "..");
-const workspaceRoot = path.resolve(appRoot, "..");
 
-// Define destination directories
-const releaseDirs = [
-  path.resolve(workspaceRoot, "releases"),
-  path.resolve(appRoot, "releases"),
-];
+// Define destination directory: strictly inside the taskmaster project folder
+const releaseDir = path.resolve(appRoot, "releases");
 
 console.log("\n========================================================");
 console.log("  BUILDING TASKMASTER EVERYWHERE TAURI PRODUCTION RELEASE");
@@ -75,18 +71,14 @@ if (foundExes.length > 0) {
 let setupExe = findBestArtifact(nsisDir, (f) => f.endsWith("-setup.exe") || f.endsWith(".exe"));
 let setupMsi = findBestArtifact(msiDir, (f) => f.endsWith(".msi"));
 
-// 3. Prepare release files map (Versioned Portable, Setup EXE, and MSI)
+// 3. Prepare release files map (strictly versioned binaries only)
 const filesToDeploy = [
   { source: portableExe, targetName: `Taskmaster-v${targetVersion}-Portable.exe`, desc: `Portable Executable v${targetVersion} (No install needed)` },
   { source: setupExe, targetName: `Taskmaster-v${targetVersion}-Setup.exe`, desc: `EXE Setup Installer v${targetVersion} (.exe)` },
   { source: setupMsi, targetName: `Taskmaster-v${targetVersion}-Setup.msi`, desc: `MSI Setup Installer v${targetVersion} (.msi)` },
-  // Also provide standard aliases for local convenience
-  { source: portableExe, targetName: "Taskmaster-Portable.exe", desc: "Portable Executable (No install needed)" },
-  { source: setupExe, targetName: "Taskmaster-Setup.exe", desc: "EXE Setup Installer (.exe)" },
-  { source: setupMsi, targetName: "Taskmaster-Setup.msi", desc: "MSI Setup Installer (.msi)" },
 ];
 
-// 4. Copy to release folders
+// 4. Copy to release folder
 // Ensure any running instances of Taskmaster are stopped so files can be replaced on Windows
 try {
   if (process.platform === "win32") {
@@ -96,27 +88,34 @@ try {
   // Ignore if not running
 }
 
-for (const dir of releaseDirs) {
-  fs.mkdirSync(dir, { recursive: true });
-  // Clean up legacy 'Everywhere' binaries if present
-  for (const oldFile of ["Taskmaster-Everywhere-Portable.exe", "Taskmaster-Everywhere-Setup.exe", "Taskmaster-Everywhere-Setup.msi"]) {
-    const oldPath = path.resolve(dir, oldFile);
-    if (fs.existsSync(oldPath)) {
-      try { fs.unlinkSync(oldPath); } catch {}
-    }
-  }
+fs.mkdirSync(releaseDir, { recursive: true });
 
-  for (const item of filesToDeploy) {
-    if (item.source && fs.existsSync(item.source)) {
-      const destPath = path.resolve(dir, item.targetName);
-      try {
-        if (fs.existsSync(destPath)) {
-          fs.unlinkSync(destPath);
-        }
-        fs.copyFileSync(item.source, destPath);
-      } catch (err) {
-        console.warn(`Warning copying to ${destPath}:`, err.message);
+// Clean up legacy unversioned binaries and 'Everywhere' binaries if present
+const obsoleteFiles = [
+  "Taskmaster-Portable.exe",
+  "Taskmaster-Setup.exe",
+  "Taskmaster-Setup.msi",
+  "Taskmaster-Everywhere-Portable.exe",
+  "Taskmaster-Everywhere-Setup.exe",
+  "Taskmaster-Everywhere-Setup.msi",
+];
+for (const oldFile of obsoleteFiles) {
+  const oldPath = path.resolve(releaseDir, oldFile);
+  if (fs.existsSync(oldPath)) {
+    try { fs.unlinkSync(oldPath); } catch {}
+  }
+}
+
+for (const item of filesToDeploy) {
+  if (item.source && fs.existsSync(item.source)) {
+    const destPath = path.resolve(releaseDir, item.targetName);
+    try {
+      if (fs.existsSync(destPath)) {
+        fs.unlinkSync(destPath);
       }
+      fs.copyFileSync(item.source, destPath);
+    } catch (err) {
+      console.warn(`Warning copying to ${destPath}:`, err.message);
     }
   }
 }
@@ -134,9 +133,8 @@ console.log("  [SUCCESS] RELEASE BUILD COMPLETED & UPDATED SUCCESSFULLY");
 console.log("========================================================\n");
 console.log("The following releases have been generated and updated:\n");
 
-const primaryReleaseDir = releaseDirs[0];
 for (const item of filesToDeploy) {
-  const filePath = path.resolve(primaryReleaseDir, item.targetName);
+  const filePath = path.resolve(releaseDir, item.targetName);
   if (fs.existsSync(filePath)) {
     const stats = fs.statSync(filePath);
     const sizeMb = (stats.size / (1024 * 1024)).toFixed(2);
@@ -148,8 +146,5 @@ for (const item of filesToDeploy) {
   }
 }
 
-console.log("Output release directories:");
-for (const dir of releaseDirs) {
-  console.log(` - ${dir}`);
-}
-console.log("\nEach time you run this command, all old files in these directories are automatically replaced with the new build.\n");
+console.log(`Output release directory:\n - ${releaseDir}\n`);
+console.log("Each time you run this command, old files in this directory are automatically replaced with the new build.\n");

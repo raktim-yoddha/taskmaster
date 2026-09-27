@@ -15,7 +15,26 @@ import {
   Type
 } from "lucide-react";
 import { ThemedSelect, ThemedSelectOption } from "./ThemedSelect";
+import { SegmentedControl, SegmentedOption } from "./SegmentedControl";
 import { CURRENT_VERSION } from "../utils/updater";
+
+const SETTINGS_TAB_OPTIONS: SegmentedOption<"daily" | "appearance" | "updates">[] = [
+  {
+    id: "daily",
+    label: "Daily To-Do & History",
+    icon: <Calendar className="w-3.5 h-3.5" />,
+  },
+  {
+    id: "appearance",
+    label: "Appearance & Theme",
+    icon: <Palette className="w-3.5 h-3.5" />,
+  },
+  {
+    id: "updates",
+    label: "Software Update",
+    icon: <ArrowUpCircle className="w-3.5 h-3.5" />,
+  },
+];
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -205,50 +224,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Navigation Tabs (Pills) */}
-        <div className="flex items-center gap-1.5 px-6 pt-3 pb-2 border-b border-white/[0.06] bg-[#15171b]/60 shrink-0 text-xs font-semibold select-none">
-          <button
-            type="button"
-            onClick={() => setActiveTab("daily")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
-              activeTab === "daily"
-                ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] [&>svg]:[filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.4))] shadow-sm shadow-black/25 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Daily To-Do & History</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("appearance")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
-              activeTab === "appearance"
-                ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] [&>svg]:[filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.4))] shadow-sm shadow-black/25 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span>Appearance & Theme</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("updates")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${
-              activeTab === "updates"
-                ? "bg-[#ff5733] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.4)] [&>svg]:[filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.4))] shadow-sm shadow-black/25 border border-[#ff5733]"
-                : "text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.06]"
-            }`}
-          >
-            <ArrowUpCircle className="w-3.5 h-3.5" />
-            <span>Software Update</span>
-          </button>
+        {/* Modal Navigation Tabs (Segmented Liquid Glass Control) */}
+        <div className="flex items-center px-6 py-2.5 border-b border-white/[0.06] bg-[#15171b]/60 shrink-0 select-none">
+          <SegmentedControl<"daily" | "appearance" | "updates">
+            as="nav"
+            className="p-1"
+            buttonClassName="px-3.5 py-1.5 text-xs font-semibold gap-2"
+            options={SETTINGS_TAB_OPTIONS}
+            value={activeTab}
+            onChange={(val) => setActiveTab(val)}
+            accentColor={theme.accentColor || "#ff5733"}
+          />
         </div>
 
         {/* Modal Scrollable Content (Scrollbar hidden, spacious padding) */}
-        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden p-6 pb-28 space-y-5">
           {/* TAB 1: DAILY TO-DO & HISTORY */}
           {activeTab === "daily" && (
             <div className="space-y-4 animate-in fade-in duration-200">
