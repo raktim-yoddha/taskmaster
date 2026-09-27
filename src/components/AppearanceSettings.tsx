@@ -93,7 +93,7 @@ export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       {/* Preset Themes Card */}
       <div className="liquid-glass-card rounded-[22px] p-6 shadow-xl">
         <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06] text-sm font-semibold text-white">
-          <div className="w-7 h-7 rounded-xl bg-[#ff5733]/15 flex items-center justify-center text-[#ff5733]">
+          <div className="w-7 h-7 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-sm shadow-[#ff5733]/20">
             <Sparkles className="w-4 h-4" />
           </div>
           <span>Curated Color Presets</span>
@@ -135,7 +135,7 @@ export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       {/* Custom Color Palette */}
       <div className="liquid-glass-card rounded-[22px] p-6 shadow-xl">
         <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06] text-sm font-semibold text-white">
-          <div className="w-7 h-7 rounded-xl bg-[#ff5733]/15 flex items-center justify-center text-[#ff5733]">
+          <div className="w-7 h-7 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-sm shadow-[#ff5733]/20">
             <Palette className="w-4 h-4" />
           </div>
           <span>Custom Palette</span>
@@ -204,7 +204,7 @@ export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       {/* Geometry, Glassmorphism & Sizing */}
       <div className="liquid-glass-card rounded-[22px] p-6 shadow-xl">
         <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06] text-sm font-semibold text-white">
-          <div className="w-7 h-7 rounded-xl bg-[#ff5733]/15 flex items-center justify-center text-[#ff5733]">
+          <div className="w-7 h-7 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-sm shadow-[#ff5733]/20">
             <Sliders className="w-4 h-4" />
           </div>
           <span>Sticky Widget Dimensions & Glassmorphism</span>
@@ -306,7 +306,7 @@ export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       {/* Typography & Display Behavior */}
       <div className="liquid-glass-card rounded-[22px] p-6 shadow-xl">
         <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06] text-sm font-semibold text-white">
-          <div className="w-7 h-7 rounded-xl bg-[#ff5733]/15 flex items-center justify-center text-[#ff5733]">
+          <div className="w-7 h-7 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-sm shadow-[#ff5733]/20">
             <Type className="w-4 h-4" />
           </div>
           <span>Typography & Task Styles</span>

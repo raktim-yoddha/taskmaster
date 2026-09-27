@@ -338,6 +338,51 @@ export default function App() {
     }
   }, []);
 
+  const handleSaveNote = useCallback(async (note: any) => {
+    setState((prev) => {
+      const notes = prev.notes || [];
+      const idx = notes.findIndex((n) => n.id === note.id);
+      let nextNotes: any[];
+      if (idx !== -1) {
+        nextNotes = [...notes];
+        nextNotes[idx] = note;
+      } else {
+        nextNotes = [note, ...notes];
+      }
+      return { ...prev, notes: nextNotes, activeNoteId: note.id };
+    });
+    try {
+      const updated = await invoke<OverlayState>("save_note", { note });
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("save_note error:", e);
+    }
+  }, []);
+
+  const handleDeleteNote = useCallback(async (id: string) => {
+    setState((prev) => {
+      const notes = (prev.notes || []).filter((n) => n.id !== id);
+      const activeNoteId = prev.activeNoteId === id ? (notes[0]?.id || null) : prev.activeNoteId;
+      return { ...prev, notes, activeNoteId };
+    });
+    try {
+      const updated = await invoke<OverlayState>("delete_note", { id });
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("delete_note error:", e);
+    }
+  }, []);
+
+  const handleSetActiveNote = useCallback(async (id: string | null) => {
+    setState((prev) => ({ ...prev, activeNoteId: id }));
+    try {
+      const updated = await invoke<OverlayState>("set_active_note", { id });
+      if (updated) setState(updated);
+    } catch (e) {
+      console.error("set_active_note error:", e);
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-slate-950 text-slate-400 text-xs font-mono">
@@ -358,6 +403,9 @@ export default function App() {
         onDeleteTodo={handleDeleteTodo}
         onReorderTodos={handleReorderTodos}
         onSetTitle={handleSetTitle}
+        onSaveNote={handleSaveNote}
+        onDeleteNote={handleDeleteNote}
+        onSetActiveNote={handleSetActiveNote}
       />
     );
   }
@@ -380,6 +428,9 @@ export default function App() {
       onRestoreTodos={handleRestoreTodos}
       onRolloverDailyTodos={handleRolloverDailyTodos}
       onUpdateDailyResetTime={handleUpdateDailyResetTime}
+      onSaveNote={handleSaveNote}
+      onDeleteNote={handleDeleteNote}
+      onSetActiveNote={handleSetActiveNote}
     />
   );
 }

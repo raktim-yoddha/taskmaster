@@ -31,8 +31,10 @@ import {
   TrendingUp,
   Square,
   Calendar,
-  Settings
+  Settings,
+  FileText
 } from "lucide-react";
+import { NotesView } from "./NotesView";
 import { checkForUpdate, UpdateInfo, CURRENT_VERSION } from "../utils/updater";
 import { UpdateNotificationModal } from "./UpdateNotificationModal";
 import {
@@ -66,9 +68,12 @@ interface AppDashboardProps {
   onRestoreTodos: (todos: TodoItem[]) => Promise<void>;
   onRolloverDailyTodos: () => Promise<void>;
   onUpdateDailyResetTime?: (time: string) => Promise<void>;
+  onSaveNote?: (note: any) => Promise<void>;
+  onDeleteNote?: (id: string) => Promise<void>;
+  onSetActiveNote?: (id: string | null) => Promise<void>;
 }
 
-type DashboardView = "todo" | "history";
+type DashboardView = "todo" | "history" | "notes";
 
 interface SortableGoalRowProps {
   todo: TodoItem;
@@ -235,6 +240,9 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
   onRestoreTodos,
   onRolloverDailyTodos,
   onUpdateDailyResetTime,
+  onSaveNote,
+  onDeleteNote,
+  onSetActiveNote,
 }) => {
   const [activeView, setActiveView] = useState<DashboardView>("todo");
   const [isMaximized, setIsMaximized] = useState(false);
@@ -518,18 +526,30 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
                 icon: <Calendar className="w-3.5 h-3.5 shrink-0" />,
                 title: "History: Daily Task Stacks & Archive",
               },
+              {
+                id: "notes",
+                label: "Notes",
+                icon: <FileText className="w-3.5 h-3.5 shrink-0" />,
+                title: "Notes: Markdown Notes & Scratchpad",
+              },
             ]}
             value={activeView}
-            onChange={(val) => setActiveView(val as "todo" | "history")}
+            onChange={(val) => setActiveView(val as "todo" | "history" | "notes")}
           />
         </div>
 
-        {/* Center: Search pill (visible on wide screens for both To-do and History) */}
+        {/* Center: Search pill (visible on wide screens for To-do, History, and Notes) */}
         <div className="relative hidden lg:flex items-center max-w-xs flex-1 min-w-0 mx-2" data-no-drag>
           <Search className="w-3 h-3 text-neutral-400 absolute left-2.5 pointer-events-none shrink-0" />
           <input
             type="text"
-            placeholder={activeView === "history" ? "Search past tasks or dates..." : "Search tasks or goals..."}
+            placeholder={
+              activeView === "history"
+                ? "Search past tasks or dates..."
+                : activeView === "notes"
+                ? "Search notes..."
+                : "Search tasks or goals..."
+            }
             value={activeView === "history" ? historySearchQuery : searchQuery}
             onChange={(e) => {
               if (activeView === "history") {
@@ -674,6 +694,7 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
         {activeView === "history" ? (
           <HistoryView
             history={state.history || []}
+            currentTodos={state.todos || []}
             retentionDays={state.historyRetentionDays || 7}
             accentColor={accentColor}
             searchQuery={historySearchQuery}
@@ -683,6 +704,16 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
               setSettingsDefaultTab("daily");
               setIsSettingsModalOpen(true);
             }}
+          />
+        ) : activeView === "notes" ? (
+          <NotesView
+            notes={state.notes || []}
+            activeNoteId={state.activeNoteId}
+            accentColor={accentColor}
+            searchQuery={searchQuery}
+            onSaveNote={onSaveNote || (async () => {})}
+            onDeleteNote={onDeleteNote || (async () => {})}
+            onSetActiveNote={onSetActiveNote || (async () => {})}
           />
         ) : (
           <div className="flex flex-col gap-6">
@@ -777,15 +808,15 @@ export const AppDashboard: React.FC<AppDashboardProps> = ({
 
                     {/* Progress pill & Quick Actions */}
                     <div className="flex items-center gap-2">
-                      {/* Archive Button on the left side of the completion bar */}
+                      {/* End Day / Archive Button on the left side of the completion bar */}
                       <button
                         type="button"
                         onClick={onRolloverDailyTodos}
                         className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-neutral-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/[0.16] transition-all cursor-pointer shadow-sm active:scale-95"
-                        title="Archive current to-dos into History and start a fresh day"
+                        title="End day and archive current to-dos into History"
                       >
                         <Archive className="w-3.5 h-3.5 text-[#ff5733]" />
-                        <span>Archive</span>
+                        <span>End</span>
                       </button>
 
                       <span className="bg-[#191b20]/80 border border-white/[0.08] rounded-full px-3 py-1 text-xs text-neutral-300 font-mono">

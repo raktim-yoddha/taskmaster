@@ -82,6 +82,16 @@ pub fn default_daily_reset_time() -> String {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct NoteItem {
+    pub id: String,
+    pub title: String,
+    pub content: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct OverlayState {
     pub title: String,
     pub todos: Vec<TodoItem>,
@@ -94,6 +104,10 @@ pub struct OverlayState {
     pub history: Vec<DailyHistoryRecord>,
     #[serde(default)]
     pub last_active_date: String,
+    #[serde(default)]
+    pub notes: Vec<NoteItem>,
+    #[serde(default)]
+    pub active_note_id: Option<String>,
 }
 
 impl Default for OverlayState {
@@ -137,6 +151,16 @@ impl Default for OverlayState {
             daily_reset_time: "00:00".to_string(),
             history: Vec::new(),
             last_active_date: chrono::Local::now().format("%Y-%m-%d").to_string(),
+            notes: vec![
+                NoteItem {
+                    id: "note-1".to_string(),
+                    title: "Welcome to Notes".to_string(),
+                    content: "# Welcome to Taskmaster Notes 📝\n\nThis is your lightweight **Markdown scratchpad**, synchronized between your desktop and sticky widget.\n\n### Markdown Features Supported:\n- **Bold** & *Italics*\n- [x] Completed task checklist\n- [ ] Pending task checklist\n- `inline code` and code blocks\n- > Blockquotes for thoughts\n- Bullet points and numbered lists\n\nClick **Save** anytime to preserve changes, and switch notes using the selector above!".to_string(),
+                    created_at: chrono::Local::now().to_rfc3339(),
+                    updated_at: chrono::Local::now().to_rfc3339(),
+                }
+            ],
+            active_note_id: Some("note-1".to_string()),
         }
     }
 }

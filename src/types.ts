@@ -35,6 +35,14 @@ export interface OverlayTheme {
   completionOrder?: "maintain" | "queue"; // 'maintain' | 'queue'
 }
 
+export interface NoteItem {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OverlayState {
   title: string;
   todos: TodoItem[];
@@ -43,6 +51,8 @@ export interface OverlayState {
   dailyResetTime?: string; // "00:00", "01:00", etc.
   history?: DailyHistoryRecord[];
   lastActiveDate?: string;
+  notes?: NoteItem[];
+  activeNoteId?: string | null;
 }
 
 export type TimerMode = "pomodoro" | "countdown" | "stopwatch";

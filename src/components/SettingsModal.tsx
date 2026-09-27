@@ -206,7 +206,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Modal Top Bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#181a1f]/80 backdrop-blur-xl shrink-0 select-none">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#ff5733]/15 border border-[#ff5733]/30 flex items-center justify-center text-[#ff5733]">
+            <div className="w-8 h-8 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-md shadow-[#ff5733]/25">
               <Sliders className="w-4 h-4" />
             </div>
             <div>
@@ -367,7 +367,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Card 1: Curated Color Presets */}
               <div className="liquid-glass-card rounded-[22px] p-5 border border-white/[0.08] shadow-xl">
                 <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06] text-sm font-semibold text-white">
-                  <div className="w-7 h-7 rounded-xl bg-[#ff5733]/15 flex items-center justify-center text-[#ff5733]">
+                  <div className="w-7 h-7 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-sm shadow-[#ff5733]/20">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <span>Curated Color Presets</span>
@@ -410,7 +410,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Card 2: Custom Palette */}
               <div className="liquid-glass-card rounded-[22px] p-5 border border-white/[0.08] shadow-xl">
                 <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06] text-sm font-semibold text-white">
-                  <div className="w-7 h-7 rounded-xl bg-[#ff5733]/15 flex items-center justify-center text-[#ff5733]">
+                  <div className="w-7 h-7 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-sm shadow-[#ff5733]/20">
                     <Palette className="w-4 h-4" />
                   </div>
                   <span>Custom Palette</span>
@@ -479,7 +479,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Card 3: Sticky Widget Dimensions & Glassmorphism */}
               <div className="liquid-glass-card rounded-[22px] p-5 border border-white/[0.08] shadow-xl">
                 <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06] text-sm font-semibold text-white">
-                  <div className="w-7 h-7 rounded-xl bg-[#ff5733]/15 flex items-center justify-center text-[#ff5733]">
+                  <div className="w-7 h-7 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-sm shadow-[#ff5733]/20">
                     <Sliders className="w-4 h-4" />
                   </div>
                   <span>Sticky Widget Dimensions & Glassmorphism</span>
@@ -599,7 +599,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Card 4: Typography & Task Styles */}
               <div className="liquid-glass-card rounded-[22px] p-5 border border-white/[0.08] shadow-xl">
                 <div className="flex items-center gap-2.5 pb-4 border-b border-white/[0.06] text-sm font-semibold text-white">
-                  <div className="w-7 h-7 rounded-xl bg-[#ff5733]/15 flex items-center justify-center text-[#ff5733]">
+                  <div className="w-7 h-7 rounded-xl bg-[#ff5733] flex items-center justify-center text-white shadow-sm shadow-[#ff5733]/20">
                     <Type className="w-4 h-4" />
                   </div>
                   <span>Typography & Task Styles</span>

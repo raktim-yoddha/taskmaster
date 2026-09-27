@@ -1,12 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { invoke } from "@tauri-apps/api/core";
-import { OverlayState, TodoItem } from "../types";
+import { OverlayState, TodoItem, NoteItem } from "../types";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { 
   Check, 
   Plus, 
-  Settings, 
   Trash2, 
   X, 
   GripVertical,
@@ -16,7 +17,12 @@ import {
   Pause,
   Clock,
   Flame,
-  Hourglass
+  Hourglass,
+  CheckSquare,
+  FileText,
+  Save,
+  Eye,
+  Edit3
 } from "lucide-react";
 import { UseTimerReturn } from "../hooks/useTimer";
 import {
@@ -43,6 +49,9 @@ interface StickyWidgetProps {
   onDeleteTodo: (id: string) => Promise<void>;
   onReorderTodos: (fromIndex: number, toIndex: number) => Promise<void>;
   onSetTitle: (title: string) => Promise<void>;
+  onSaveNote?: (note: NoteItem) => Promise<void>;
+  onDeleteNote?: (id: string) => Promise<void>;
+  onSetActiveNote?: (id: string | null) => Promise<void>;
 }
 
 function hexToRgba(hex: string, alpha: number) {
@@ -228,8 +237,12 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
   onDeleteTodo,
   onReorderTodos,
   onSetTitle,
+  onSaveNote,
+  onDeleteNote,
+  onSetActiveNote,
 }) => {
   const { todos, theme } = state;
+  const [activeWidgetTab, setActiveWidgetTab] = useState<"todo" | "notes">("todo");
   const [isAdding, setIsAdding] = useState(false);
   const [newText, setNewText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -239,6 +252,92 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isCapsuleHovered, setIsCapsuleHovered] = useState(false);
   const expandedSizeRef = useRef<{ width: number; height: number }>({ width: 380, height: 320 });
+
+  // Notes state & handling
+  const notes = useMemo(() => state.notes || [], [state.notes]);
+  const currentActiveNote = useMemo(() => {
+    if (!notes || notes.length === 0) return null;
+    if (state.activeNoteId) {
+      const found = notes.find((n) => n.id === state.activeNoteId);
+      if (found) return found;
+    }
+    return notes[0] || null;
+  }, [notes, state.activeNoteId]);
+
+  const [widgetNoteTitle, setWidgetNoteTitle] = useState("");
+  const [widgetNoteContent, setWidgetNoteContent] = useState("");
+  const [widgetNoteMode, setWidgetNoteMode] = useState<"edit" | "preview">("edit");
+  const [isNoteSaved, setIsNoteSaved] = useState(true);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Synchronize current note to widget editor state
+  useEffect(() => {
+    if (currentActiveNote) {
+      setWidgetNoteTitle(currentActiveNote.title);
+      setWidgetNoteContent(currentActiveNote.content);
+      setIsNoteSaved(true);
+    } else if (notes.length === 0) {
+      setWidgetNoteTitle("Quick Note");
+      setWidgetNoteContent("# Quick Note\n\n- [ ] Write first note in widget\n- [ ] Full **Markdown** support!");
+      setIsNoteSaved(true);
+    }
+  }, [currentActiveNote?.id]);
+
+  const handleSaveCurrentNote = async () => {
+    const titleToSave = widgetNoteTitle.trim() || "Untitled Note";
+    const noteId = currentActiveNote?.id || `note-${Date.now()}`;
+    const noteToSave: NoteItem = {
+      id: noteId,
+      title: titleToSave,
+      content: widgetNoteContent,
+      createdAt: currentActiveNote?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    if (onSaveNote) {
+      await onSaveNote(noteToSave);
+    }
+    setIsNoteSaved(true);
+    setShowSaveSuccess(true);
+    setTimeout(() => setShowSaveSuccess(false), 1800);
+  };
+
+  const handleCreateNewNote = async () => {
+    const newId = `note-${Date.now()}`;
+    const newNote: NoteItem = {
+      id: newId,
+      title: `Note ${notes.length + 1}`,
+      content: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setWidgetNoteTitle(newNote.title);
+    setWidgetNoteContent(newNote.content);
+    setWidgetNoteMode("edit");
+    setIsNoteSaved(true);
+    if (onSaveNote) {
+      await onSaveNote(newNote);
+    }
+    if (onSetActiveNote) {
+      await onSetActiveNote(newId);
+    }
+    setTimeout(() => {
+      noteTextareaRef.current?.focus();
+    }, 60);
+  };
+
+  const handleSelectNote = async (id: string) => {
+    if (onSetActiveNote) {
+      await onSetActiveNote(id);
+    }
+  };
+
+  const handleDeleteCurrentNote = async () => {
+    if (!currentActiveNote) return;
+    if (onDeleteNote) {
+      await onDeleteNote(currentActiveNote.id);
+    }
+  };
 
   const handleCollapse = async (e?: React.MouseEvent) => {
     if (e) {
@@ -650,33 +749,75 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
         <div 
           data-tauri-drag-region
           onMouseDown={handleStartDrag}
-          className="flex items-center justify-between pb-1 mb-1 border-b border-white/[0.06] opacity-75 hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing shrink-0"
+          className="flex items-center justify-between pb-1 mb-1 border-b border-white/[0.06] opacity-80 hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing shrink-0"
         >
+          {/* Left: Logo & Name - double click opens the main app */}
           <div 
             data-tauri-drag-region
             onMouseDown={handleStartDrag}
-            className="flex items-center gap-1 text-xs text-white/90 select-none cursor-grab active:cursor-grabbing"
-            title="Drag to reposition widget"
+            onDoubleClick={handleOpenSettings}
+            className="flex items-center gap-1.5 text-xs text-white/90 select-none cursor-grab active:cursor-grabbing hover:opacity-100 transition-opacity"
+            title="Double-click to open Taskmaster • Drag to reposition widget"
           >
             <img 
               src="/logo2.png" 
               alt="Taskmaster Widget Logo" 
-              className="w-3.5 h-3.5 object-contain select-none cursor-grab active:cursor-grabbing" 
+              className="w-3.5 h-3.5 object-contain select-none pointer-events-none" 
             />
-            <span className="font-semibold text-[10.5px] tracking-tight text-white/80 cursor-grab active:cursor-grabbing">
+            <span className="font-semibold text-[10.5px] tracking-tight text-white/85 pointer-events-none">
               Taskmaster
             </span>
           </div>
 
-          <div className="flex items-center gap-0.5">
+          {/* Center: Navigation icons between To Do and Notes */}
+          <div className="flex items-center bg-black/40 p-0.5 rounded-lg border border-white/10 shrink-0" data-no-drag="true">
             <button
               type="button"
-              onClick={() => setIsAdding(!isAdding)}
-              className="p-1 rounded-md hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-              title="Add task"
+              onClick={() => setActiveWidgetTab("todo")}
+              className={`p-1 rounded-md transition-all cursor-pointer ${
+                activeWidgetTab === "todo"
+                  ? "bg-[#ff5733] text-white shadow-sm"
+                  : "text-neutral-400 hover:text-white"
+              }`}
+              title="To Do"
             >
-              <Plus className="w-3 h-3" />
+              <CheckSquare className="w-3 h-3" />
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveWidgetTab("notes")}
+              className={`p-1 rounded-md transition-all cursor-pointer ${
+                activeWidgetTab === "notes"
+                  ? "bg-[#ff5733] text-white shadow-sm"
+                  : "text-neutral-400 hover:text-white"
+              }`}
+              title="Notes"
+            >
+              <FileText className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* Right Action Icons (Settings removed!) */}
+          <div className="flex items-center gap-0.5">
+            {activeWidgetTab === "todo" ? (
+              <button
+                type="button"
+                onClick={() => setIsAdding(!isAdding)}
+                className="p-1 rounded-md hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                title="Add task"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCreateNewNote}
+                className="p-1 rounded-md hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                title="Create new note"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            )}
             <button
               type="button"
               onClick={handleCollapse}
@@ -684,14 +825,6 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
               title="Collapse to mini capsule"
             >
               <Minimize2 className="w-3 h-3" />
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenSettings}
-              className="p-1 rounded-md hover:bg-white/10 text-neutral-400 hover:text-[#ff5733] transition-colors cursor-pointer"
-              title="Open App & Customizer"
-            >
-              <Settings className="w-3 h-3" />
             </button>
             <button
               type="button"
@@ -704,162 +837,317 @@ export const StickyWidget: React.FC<StickyWidgetProps> = ({
           </div>
         </div>
 
-        {/* Header: Title & Fraction */}
-        {(showTitle || showFraction) && (
-          <div 
-            data-tauri-drag-region
-            onMouseDown={handleStartDrag}
-            className="flex items-center justify-between mt-0.5 mb-1 gap-1.5 cursor-grab shrink-0"
-          >
-            {showTitle && (
-              <div className="flex-1 min-w-0">
-                {isEditingTitle ? (
-                  <input
-                    ref={titleInputRef}
-                    type="text"
-                    value={titleInput}
-                    onChange={(e) => setTitleInput(e.target.value)}
-                    onBlur={handleSaveTitle}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveTitle();
-                      if (e.key === "Escape") setIsEditingTitle(false);
-                    }}
-                    className="w-full bg-[#14161a] border border-[#ff5733] rounded-md px-1.5 py-0.5 text-[11px] font-bold tracking-wider uppercase text-white focus:outline-none"
-                  />
-                ) : (
-                  <h1
-                    onDoubleClick={() => setIsEditingTitle(true)}
-                    className="text-[0.8rem] font-bold tracking-[0.05em] uppercase text-white/90 truncate cursor-pointer hover:opacity-80 transition-opacity"
-                    title="Double-click to rename title"
+        {activeWidgetTab === "notes" ? (
+          /* Notes Mode */
+          <div className="flex-1 flex flex-col min-h-0 pt-0.5 overflow-hidden">
+            {/* Notes Control Bar: Note Selector, Edit/Preview toggle, Save Button */}
+            <div className="flex items-center justify-between gap-1 pb-1.5 mb-1 border-b border-white/[0.06] shrink-0" data-no-drag="true">
+              {/* Note Selector Dropdown & Delete */}
+              <div className="flex items-center gap-1 min-w-0 flex-1">
+                <select
+                  value={currentActiveNote?.id || ""}
+                  onChange={(e) => handleSelectNote(e.target.value)}
+                  className="bg-black/50 border border-white/10 text-white text-[10.5px] rounded-md px-1.5 py-0.5 focus:outline-none focus:border-[#ff5733] truncate max-w-[125px] cursor-pointer"
+                  title="Select note to load"
+                >
+                  {notes.length === 0 ? (
+                    <option value="">Quick Note</option>
+                  ) : (
+                    notes.map((n) => (
+                      <option key={n.id} value={n.id} className="bg-[#181a1f] text-white">
+                        {n.title || "Untitled"}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {notes.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteCurrentNote}
+                    className="p-1 text-neutral-400 hover:text-[#ff5733] hover:bg-[#ff5733]/15 rounded-md transition-colors cursor-pointer shrink-0"
+                    title="Delete current note"
                   >
-                    {state.title || "TONIGHT'S GOAL"}
-                  </h1>
+                    <Trash2 className="w-2.5 h-2.5" />
+                  </button>
                 )}
               </div>
-            )}
 
-            {showFraction && (
-              <div className="font-bold text-[0.72rem] font-mono tracking-tight text-white tabular-nums shrink-0 bg-white/[0.06] px-1.5 py-0.5 rounded-md border border-white/[0.08]">
-                {completedCount}/{totalCount}
+              {/* Edit / Preview Toggle Buttons */}
+              <div className="flex items-center bg-black/40 p-0.5 rounded-md border border-white/10 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setWidgetNoteMode("edit")}
+                  className={`px-1.5 py-0.5 text-[9.5px] rounded transition-all cursor-pointer ${
+                    widgetNoteMode === "edit"
+                      ? "bg-[#ff5733] text-white font-semibold shadow-xs"
+                      : "text-neutral-400 hover:text-white"
+                  }`}
+                  title="Markdown Editor"
+                >
+                  <Edit3 className="w-2.5 h-2.5 inline mr-1" />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWidgetNoteMode("preview")}
+                  className={`px-1.5 py-0.5 text-[9.5px] rounded transition-all cursor-pointer ${
+                    widgetNoteMode === "preview"
+                      ? "bg-[#ff5733] text-white font-semibold shadow-xs"
+                      : "text-neutral-400 hover:text-white"
+                  }`}
+                  title="Direct Obsidian Markdown Preview"
+                >
+                  <Eye className="w-2.5 h-2.5 inline mr-1" />
+                  Preview
+                </button>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Optional mini timer strip */}
-        {timer && (
-          <div className="flex items-center justify-between bg-[#15171b]/80 border border-white/[0.06] rounded-lg px-2.5 py-1 my-1 shrink-0 text-xs select-none">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="flex items-center">
-                {timer.timerState.mode === "stopwatch" ? (
-                  <Clock className="w-3 h-3 text-neutral-400" />
-                ) : timer.timerState.mode === "pomodoro" ? (
-                  <Flame className="w-3 h-3 text-[#ff5733]" />
+              {/* Save Button */}
+              <button
+                type="button"
+                onClick={handleSaveCurrentNote}
+                className={`px-2 py-0.5 rounded-md text-[10.5px] font-semibold flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
+                  showSaveSuccess
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : !isNoteSaved
+                    ? "bg-[#ff5733] text-white hover:brightness-110 shadow-sm"
+                    : "bg-white/10 text-neutral-300 hover:text-white"
+                }`}
+                title="Save note (Ctrl+S)"
+              >
+                {showSaveSuccess ? (
+                  <>
+                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    <span>Saved</span>
+                  </>
                 ) : (
-                  <Hourglass className="w-3 h-3 text-neutral-400" />
+                  <>
+                    <Save className="w-2.5 h-2.5" />
+                    <span>Save{!isNoteSaved ? "*" : ""}</span>
+                  </>
                 )}
-              </span>
-              <span className="font-mono font-bold text-white text-[10.5px]">
-                {timer.timerState.mode === "stopwatch"
-                  ? `${Math.floor(timer.timerState.elapsedTime / 60)}:${(timer.timerState.elapsedTime % 60).toString().padStart(2, "0")}`
-                  : `${Math.floor(timer.timerState.timeRemaining / 60)}:${(timer.timerState.timeRemaining % 60).toString().padStart(2, "0")}`}
-              </span>
-              {timer.timerState.mode === "pomodoro" && (
-                <span className="text-[9.5px] text-[#ff5733] font-semibold uppercase tracking-wider">
-                  {timer.timerState.pomodoroPhase === "focus" ? "Focus" : "Break"}
-                </span>
+              </button>
+            </div>
+
+            {/* Note Title Input */}
+            <div className="mb-1 shrink-0" data-no-drag="true">
+              <input
+                type="text"
+                value={widgetNoteTitle}
+                onChange={(e) => {
+                  setWidgetNoteTitle(e.target.value);
+                  setIsNoteSaved(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    noteTextareaRef.current?.focus();
+                  }
+                }}
+                placeholder="Note title..."
+                className="w-full bg-black/30 border border-white/10 focus:border-[#ff5733] rounded-md px-2 py-0.5 text-xs font-bold text-white placeholder:text-neutral-500 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* Editor or Direct Obsidian Preview Area */}
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative" data-no-drag="true">
+              {widgetNoteMode === "edit" ? (
+                <textarea
+                  ref={noteTextareaRef}
+                  value={widgetNoteContent}
+                  onChange={(e) => {
+                    setWidgetNoteContent(e.target.value);
+                    setIsNoteSaved(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+                      e.preventDefault();
+                      handleSaveCurrentNote();
+                    }
+                  }}
+                  placeholder="Write markdown here... (# Heading, - [ ] Task, **bold**, `code`)"
+                  className="w-full flex-1 p-2 bg-black/25 border border-white/10 rounded-lg text-white font-mono text-[11px] leading-relaxed resize-none focus:outline-none focus:border-[#ff5733]/70 [scrollbar-width:thin]"
+                  spellCheck={false}
+                />
+              ) : (
+                <div
+                  onClick={() => setWidgetNoteMode("edit")}
+                  className="w-full flex-1 p-2.5 bg-black/25 border border-white/10 rounded-lg overflow-y-auto [scrollbar-width:thin] markdown-rendered cursor-text select-text"
+                  title="Direct preview: Click anywhere to edit markdown"
+                >
+                  {widgetNoteContent.trim() ? (
+                    <Markdown remarkPlugins={[remarkGfm]}>
+                      {widgetNoteContent}
+                    </Markdown>
+                  ) : (
+                    <div className="text-neutral-500 italic text-[11px] py-6 text-center select-none">
+                      Empty note. Click anywhere to start writing markdown...
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-
-            <button
-              type="button"
-              onClick={timer.togglePlay}
-              className="p-1 rounded-md text-xs transition-colors cursor-pointer text-[#ff5733] hover:text-[#ff6847] hover:bg-[#ff5733]/10"
-              title={timer.timerState.isRunning ? "Pause timer" : "Start timer"}
-            >
-              {timer.timerState.isRunning ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
-            </button>
           </div>
-        )}
-
-        {/* Thin divider & progress bar line */}
-        {showBar && (
-          <div className="w-full h-[2px] bg-white/10 rounded-full overflow-hidden my-1 relative shrink-0">
-            <div
-              className="h-full rounded-full transition-all duration-400 ease-out"
-              style={{
-                width: `${progressPct}%`,
-                background: "linear-gradient(90deg, #ff5733, #ff7a5c)",
-                boxShadow: `0 0 6px ${accentColor}80`,
-              }}
-            />
-          </div>
-        )}
-
-        {/* Inline Quick Add Input */}
-        {isAdding && (
-          <form onSubmit={handleAddSubmit} className="mb-2.5 flex items-center gap-2 shrink-0">
-            <input
-              ref={addInputRef}
-              type="text"
-              placeholder="Type goal & press Enter..."
-              value={newText}
-              onChange={(e) => setNewText(e.target.value)}
-              className="liquid-glass-input flex-1 rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff5733]"
-            />
-            <button
-              type="submit"
-              className="liquid-coral-btn px-3 py-1.5 text-xs rounded-xl"
-            >
-              Add
-            </button>
-          </form>
-        )}
-
-        {/* Todo List Items with Drag-and-Drop Reordering */}
-        <div
-          className="flex-1 min-h-0 overflow-y-auto flex flex-col pr-0.5"
-          style={{ gap: `${theme.spacing ? Math.min(theme.spacing, 8) : 6}px` }}
-        >
-          {todos.length === 0 ? (
-            <div className="text-center py-6 text-xs text-neutral-400">
-              No tasks yet. Click <span className="text-[#ff5733] font-bold">+</span> above or open To do!
-            </div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={todos.map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
+        ) : (
+          /* To Do Mode */
+          <>
+            {/* Header: Title & Fraction */}
+            {(showTitle || showFraction) && (
+              <div 
+                data-tauri-drag-region
+                onMouseDown={handleStartDrag}
+                className="flex items-center justify-between mt-0.5 mb-1 gap-1.5 cursor-grab shrink-0"
               >
-                {todos.map((todo, index) => (
-                  <SortableTodoItem
-                    key={todo.id}
-                    todo={todo}
-                    index={index}
-                    totalTodos={todos.length}
-                    density={theme.density || "comfortable"}
-                    completedStyle={theme.completedStyle || "strike"}
-                    accentColor={accentColor}
-                    isQueueMode={theme.completionOrder === "queue"}
-                    editingId={editingId}
-                    editingText={editingText}
-                    editInputRef={editInputRef}
-                    onToggle={onToggleTodo}
-                    onStartEdit={handleStartEdit}
-                    onTextChange={setEditingText}
-                    onSaveEdit={handleSaveEdit}
-                    onCancelEdit={() => setEditingId(null)}
-                    onDelete={onDeleteTodo}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
-          )}
-        </div>
+                {showTitle && (
+                  <div className="flex-1 min-w-0">
+                    {isEditingTitle ? (
+                      <input
+                        ref={titleInputRef}
+                        type="text"
+                        value={titleInput}
+                        onChange={(e) => setTitleInput(e.target.value)}
+                        onBlur={handleSaveTitle}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveTitle();
+                          if (e.key === "Escape") setIsEditingTitle(false);
+                        }}
+                        className="w-full bg-[#14161a] border border-[#ff5733] rounded-md px-1.5 py-0.5 text-[11px] font-bold tracking-wider uppercase text-white focus:outline-none"
+                      />
+                    ) : (
+                      <h1
+                        onDoubleClick={() => setIsEditingTitle(true)}
+                        className="text-[0.8rem] font-bold tracking-[0.05em] uppercase text-white/90 truncate cursor-pointer hover:opacity-80 transition-opacity"
+                        title="Double-click to rename title"
+                      >
+                        {state.title || "TONIGHT'S GOAL"}
+                      </h1>
+                    )}
+                  </div>
+                )}
+
+                {showFraction && (
+                  <div className="font-bold text-[0.72rem] font-mono tracking-tight text-white tabular-nums shrink-0 bg-white/[0.06] px-1.5 py-0.5 rounded-md border border-white/[0.08]">
+                    {completedCount}/{totalCount}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Optional mini timer strip */}
+            {timer && (
+              <div className="flex items-center justify-between bg-[#15171b]/80 border border-white/[0.06] rounded-lg px-2.5 py-1 my-1 shrink-0 text-xs select-none">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="flex items-center">
+                    {timer.timerState.mode === "stopwatch" ? (
+                      <Clock className="w-3 h-3 text-neutral-400" />
+                    ) : timer.timerState.mode === "pomodoro" ? (
+                      <Flame className="w-3 h-3 text-[#ff5733]" />
+                    ) : (
+                      <Hourglass className="w-3 h-3 text-neutral-400" />
+                    )}
+                  </span>
+                  <span className="font-mono font-bold text-white text-[10.5px]">
+                    {timer.timerState.mode === "stopwatch"
+                      ? `${Math.floor(timer.timerState.elapsedTime / 60)}:${(timer.timerState.elapsedTime % 60).toString().padStart(2, "0")}`
+                      : `${Math.floor(timer.timerState.timeRemaining / 60)}:${(timer.timerState.timeRemaining % 60).toString().padStart(2, "0")}`}
+                  </span>
+                  {timer.timerState.mode === "pomodoro" && (
+                    <span className="text-[9.5px] text-[#ff5733] font-semibold uppercase tracking-wider">
+                      {timer.timerState.pomodoroPhase === "focus" ? "Focus" : "Break"}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={timer.togglePlay}
+                  className="p-1 rounded-md text-xs transition-colors cursor-pointer text-[#ff5733] hover:text-[#ff6847] hover:bg-[#ff5733]/10"
+                  title={timer.timerState.isRunning ? "Pause timer" : "Start timer"}
+                >
+                  {timer.timerState.isRunning ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
+                </button>
+              </div>
+            )}
+
+            {/* Thin divider & progress bar line */}
+            {showBar && (
+              <div className="w-full h-[2px] bg-white/10 rounded-full overflow-hidden my-1 relative shrink-0">
+                <div
+                  className="h-full rounded-full transition-all duration-400 ease-out"
+                  style={{
+                    width: `${progressPct}%`,
+                    background: "linear-gradient(90deg, #ff5733, #ff7a5c)",
+                    boxShadow: `0 0 6px ${accentColor}80`,
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Inline Quick Add Input */}
+            {isAdding && (
+              <form onSubmit={handleAddSubmit} className="mb-2.5 flex items-center gap-2 shrink-0">
+                <input
+                  ref={addInputRef}
+                  type="text"
+                  placeholder="Type goal & press Enter..."
+                  value={newText}
+                  onChange={(e) => setNewText(e.target.value)}
+                  className="liquid-glass-input flex-1 rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ff5733]"
+                />
+                <button
+                  type="submit"
+                  className="liquid-coral-btn px-3 py-1.5 text-xs rounded-xl"
+                >
+                  Add
+                </button>
+              </form>
+            )}
+
+            {/* Todo List Items with Drag-and-Drop Reordering */}
+            <div
+              className="flex-1 min-h-0 overflow-y-auto flex flex-col pr-0.5"
+              style={{ gap: `${theme.spacing ? Math.min(theme.spacing, 8) : 6}px` }}
+            >
+              {todos.length === 0 ? (
+                <div className="text-center py-6 text-xs text-neutral-400">
+                  No tasks yet. Click <span className="text-[#ff5733] font-bold">+</span> above or open To do!
+                </div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={todos.map((t) => t.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {todos.map((todo, index) => (
+                      <SortableTodoItem
+                        key={todo.id}
+                        todo={todo}
+                        index={index}
+                        totalTodos={todos.length}
+                        density={theme.density || "comfortable"}
+                        completedStyle={theme.completedStyle || "strike"}
+                        accentColor={accentColor}
+                        isQueueMode={theme.completionOrder === "queue"}
+                        editingId={editingId}
+                        editingText={editingText}
+                        editInputRef={editInputRef}
+                        onToggle={onToggleTodo}
+                        onStartEdit={handleStartEdit}
+                        onTextChange={setEditingText}
+                        onSaveEdit={handleSaveEdit}
+                        onCancelEdit={() => setEditingId(null)}
+                        onDelete={onDeleteTodo}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
+          </>
+        )}
         
         {/* Visible Bottom-Right Corner Resize Grip Handle */}
         <div

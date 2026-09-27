@@ -12,7 +12,7 @@ use tauri::{
 use uuid::Uuid;
 use chrono::{Days, Duration, Local, NaiveDate};
 
-use models::{DailyHistoryRecord, OverlayState, OverlayTheme, TodoItem};
+use models::{DailyHistoryRecord, NoteItem, OverlayState, OverlayTheme, TodoItem};
 use store::{load_state, save_state};
 
 #[cfg(target_os = "windows")]
@@ -510,6 +510,55 @@ async fn rollover_daily_todos(ctx: State<'_, AppContext>) -> Result<OverlayState
     Ok(updated)
 }
 
+#[tauri::command]
+async fn save_note(ctx: State<'_, AppContext>, note: NoteItem) -> Result<OverlayState, String> {
+    let updated = {
+        let mut current = ctx.state.write().await;
+        if let Some(existing) = current.notes.iter_mut().find(|n| n.id == note.id) {
+            existing.title = note.title;
+            existing.content = note.content;
+            existing.updated_at = note.updated_at;
+        } else {
+            current.notes.insert(0, note.clone());
+        }
+        current.active_note_id = Some(note.id);
+        save_state(&current)?;
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
+#[tauri::command]
+async fn delete_note(ctx: State<'_, AppContext>, id: String) -> Result<OverlayState, String> {
+    let updated = {
+        let mut current = ctx.state.write().await;
+        current.notes.retain(|n| n.id != id);
+        if current.active_note_id.as_deref() == Some(&id) {
+            current.active_note_id = current.notes.first().map(|n| n.id.clone());
+        }
+        save_state(&current)?;
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
+#[tauri::command]
+async fn set_active_note(ctx: State<'_, AppContext>, id: Option<String>) -> Result<OverlayState, String> {
+    let updated = {
+        let mut current = ctx.state.write().await;
+        current.active_note_id = id;
+        save_state(&current)?;
+        current.clone()
+    };
+
+    broadcast_update(&ctx, &updated).await;
+    Ok(updated)
+}
+
 
 #[tauri::command]
 fn minimize_main_window(app: AppHandle) -> Result<(), String> {
@@ -682,6 +731,9 @@ pub fn run() {
             delete_history_record,
             restore_history_todos,
             rollover_daily_todos,
+            save_note,
+            delete_note,
+            set_active_note,
             minimize_main_window,
             toggle_maximize_main_window,
             close_main_window,
